@@ -3129,7 +3129,7 @@ MonoBehaviour:
     m_RotationOrder: 4
   animationDuration: 1.78
   _isOpen: 1
-  _initialPosition: {x: 962.17285, y: 554.8173}
+  _initialPosition: {x: 322.17282, y: 246.58548}
   OnOpenThisWindow:
     m_PersistentCalls:
       m_Calls: []
@@ -10372,8 +10372,8 @@ MonoBehaviour:
   m_TargetGraphic: {fileID: 12984321}
   m_HandleRect: {fileID: 12984319}
   m_Direction: 0
-  m_Value: 0
-  m_Size: 0.7379638
+  m_Value: -0.00000014005352
+  m_Size: 0.73747057
   m_NumberOfSteps: 0
   m_OnValueChanged:
     m_PersistentCalls:
@@ -23516,7 +23516,7 @@ MonoBehaviour:
     m_RotationOrder: 4
   animationDuration: 0.5
   _isOpen: 0
-  _initialPosition: {x: 960, y: 540}
+  _initialPosition: {x: 320, y: 240}
   OnOpenThisWindow:
     m_PersistentCalls:
       m_Calls: []
@@ -25926,7 +25926,7 @@ MonoBehaviour:
     m_RotationOrder: 4
   animationDuration: 0.5
   _isOpen: 0
-  _initialPosition: {x: 960, y: 532.58203}
+  _initialPosition: {x: 320, y: 232.582}
   OnOpenThisWindow:
     m_PersistentCalls:
       m_Calls:
@@ -26968,8 +26968,8 @@ SceneRoots:
   - {fileID: 1441025783}
   - {fileID: 576913730}
   - {fileID: 8628834776031613413}
-  - {fileID: 2787054417024999739}
   - {fileID: 2104252059482915259}
+  - {fileID: 2787054417024999739}
   - {fileID: 1779753028}
   - {fileID: 1144517040}
   - {fileID: 1381845290}
