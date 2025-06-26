@@ -2,6 +2,9 @@ using System;
 using System.ComponentModel;
 using UnityEngine;
 
+using Newtonsoft.Json;
+using Newtonsoft.Json.Converters;
+
 [Serializable]
 public class PatientProfile
 {
@@ -14,10 +17,18 @@ public class PatientProfile
 
     // Setters and Getters properties
     public string ID { get => id; set => id = value; }
+
     public int Age { get => age; set => age = value; }
-    public StudyCategory Category { get => category; set => category = value; }
+
     public DateTime TimeOfStroke { get => timeOfStroke; set => TimeOfStroke = value; }
+
+    [JsonConverter(typeof(StringEnumConverter))]
+    public StudyCategory Category { get => category; set => category = value; }
+
+    [JsonConverter(typeof(StringEnumConverter))]
     public Side AffectedSide { get => affectedSide; set => affectedSide = value; }
+
+    [JsonConverter(typeof(StringEnumConverter))]
     public Side Handedness { get => handedness; set => handedness = value; }
 
     // Constructors
