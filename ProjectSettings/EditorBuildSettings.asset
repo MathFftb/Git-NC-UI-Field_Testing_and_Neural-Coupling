@@ -6,7 +6,7 @@ EditorBuildSettings:
   serializedVersion: 2
   m_Scenes:
   - enabled: 1
-    path: Assets/_Project/Scenes/NeuralCoupling Export/NeuralCoupling.unity
+    path: Assets/_Project/Scenes/Old Software/NeuralCoupling Export/NeuralCoupling.unity
     guid: 6b1c5814ac8961740b7099fd6905dcdf
   - enabled: 1
     path: Assets/_Project/Scenes/Real Project/1-Select Patient Profile 1.unity
