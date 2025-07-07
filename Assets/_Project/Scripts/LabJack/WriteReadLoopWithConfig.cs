@@ -51,16 +51,29 @@ public class WriteReadLoopWithConfig : MonoBehaviour
 //-----------------------------------------------------------------------------
 using System;
 using LabJack;
+using Unity;
+using TMPro;
+using UnityEngine.UI;
+using System.CodeDom;
 
 
 namespace WriteReadLoopWithConfig
 {
-    class WriteReadLoopWithConfig
+    class WriteReadLoopWithConfig : MonoBehaviour
     {
-        static void Main(string[] args)
+        public TMP_Text displayEntry;
+
+        // For console testing
+        /*static void Main(string[] args)
         {
             WriteReadLoopWithConfig wrlwc = new WriteReadLoopWithConfig();
             wrlwc.performActions();
+        }*/
+
+        void Start()
+        {
+            //WriteReadLoopWithConfig wrlwc = new WriteReadLoopWithConfig();
+            this.performActions();
         }
 
         public void showErrorMessage(LJM.LJMException e)
@@ -105,9 +118,9 @@ namespace WriteReadLoopWithConfig
                 // Converts numeric IP to a readable string.
                 LJM.NumberToIP(ipAddr, ref ipAddrStr);
 
-                Console.WriteLine("Opened a LabJack with Device type: " + devType + ", Connection type: " + conType + ",");
-                Console.WriteLine("  Serial number: " + serNum + ", IP address: " + ipAddrStr + ", Port: " + port + ",");
-                Console.WriteLine("  Max bytes per MB: " + maxBytesPerMB);
+                Debug.Log("Opened a LabJack with Device type: " + devType + ", Connection type: " + conType + ",");
+                Debug.Log("  Serial number: " + serNum + ", IP address: " + ipAddrStr + ", Port: " + port + ",");
+                Debug.Log("  Max bytes per MB: " + maxBytesPerMB);
 
                 //Setup and call eWriteNames to configure AIN0 (all devices)
                 //and digital I/O (T4 only)
@@ -179,7 +192,7 @@ namespace WriteReadLoopWithConfig
                 int it = 0; //Loop counter; incremented later.
                 double dacVolt = 0.0;
                 int fioState = 0;
-                Console.WriteLine("\nStarting read loop.  Press a key to stop.");
+                Debug.Log("\nStarting read loop.  Press a key to stop.");
 
                 /// StartInterval() Method:
                 /// Sets up a reoccurring interval timer
@@ -191,7 +204,9 @@ namespace WriteReadLoopWithConfig
 
                 // While Loop:
                 // 1. While statement: Lets the example keep running until you tap any key—a simple, cross‑platform “stop button”.
-                while (!Console.KeyAvailable) //: Console.KeyAvailable: becomes true when the user has pressed a key that hasn’t been read yet.
+                //while (!Console.KeyAvailable) //: Console.KeyAvailable: becomes true when the user has pressed a key that hasn’t been read yet.
+                int iterations = 0;
+                while (iterations < 10)
                 {
                     /// 2. Choose which registers to write to 
                     /// using eWriteNames()
@@ -219,10 +234,10 @@ namespace WriteReadLoopWithConfig
                     LJM.eWriteNames(handle, numFrames, aNames, aValues, ref errorAddress);
 
                     // 5. Log what was written
-                    Console.Write("\neWriteNames :");
+                    Debug.Log("\neWriteNames :");
                     for (int i = 0; i < numFrames; i++)
-                        Console.Write(" " + aNames[i] + " = " + aValues[i].ToString("F4") + ", ");
-                    Console.WriteLine("");
+                        Debug.Log(" " + aNames[i] + " = " + aValues[i].ToString("F4") + ", ");
+                    Debug.Log("");
 
                     /// 6. Choose which registers to read
                     //Setup and call eReadNames to read AIN0, and FIO6 (T4) or
@@ -242,10 +257,13 @@ namespace WriteReadLoopWithConfig
                     LJM.eReadNames(handle, numFrames, aNames, aValues, ref errorAddress);
 
                     // 8. Log what was read
-                    Console.Write("eReadNames  :");
+                    Debug.Log("eReadNames  :");
                     for (int i = 0; i < numFrames; i++)
-                        Console.Write(" " + aNames[i] + " = " + aValues[i].ToString("F4") + ", ");
-                    Console.WriteLine("");
+                        Debug.Log(" " + aNames[i] + " = " + aValues[i].ToString("F4") + ", ");
+                    Debug.Log("");
+
+                    // 8b. Write the entry in a TMP display in the Unity UI.
+                    displayEntry.text = aNames[1] + "=" + aValues[1].ToString("F4");
 
                     // 9. Housekeeping for next iteration
                     it++;
@@ -255,9 +273,12 @@ namespace WriteReadLoopWithConfig
                     LJM.WaitForNextInterval(intervalHandle, ref skippedIntervals);
                     if (skippedIntervals > 0)
                     {
-                        Console.WriteLine("SkippedIntervals: " + skippedIntervals);
+                        Debug.Log("SkippedIntervals: " + skippedIntervals);
                     }
                     // 11. Loop ends
+
+                    ++iterations;
+                    Debug.Log(iterations);
                 }
             }
             catch (LJM.LJMException e)
@@ -269,7 +290,7 @@ namespace WriteReadLoopWithConfig
             LJM.CleanInterval(intervalHandle);
             LJM.CloseAll();
 
-            Console.WriteLine("\nDone.\nPress the enter key to exit.");
+            Debug.Log("\nDone.\nPress the enter key to exit.");
             Console.ReadLine();  //Pause for user
         }
     }
