@@ -231,6 +231,7 @@ GameObject:
   m_Component:
   - component: {fileID: 439573306}
   - component: {fileID: 439573305}
+  - component: {fileID: 439573307}
   m_Layer: 0
   m_Name: LabjackTester
   m_TagString: Untagged
@@ -245,7 +246,7 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 439573304}
-  m_Enabled: 0
+  m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 52cebf22fe18e804abbd643bf7eb5d6e, type: 3}
   m_Name: 
@@ -266,6 +267,19 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &439573307
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 439573304}
+  m_Enabled: 0
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8be93737f4e22c64a8eae394a09c1eb6, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  displayEntry: {fileID: 1168335008}
 --- !u!1 &890508665
 GameObject:
   m_ObjectHideFlags: 0

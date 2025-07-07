@@ -33,6 +33,7 @@ public class LabJackManager : MonoBehaviour
     {
         InitializeValues();
         ConnectLabJack();
+        MainLoop();
         DisconnectLabJack();
     }
 
@@ -67,11 +68,13 @@ public class LabJackManager : MonoBehaviour
         {
             /// 2. Choose which registers to write to 
             /// using eWriteNames()
-            /// On a T4 the digital I/O labelled FIO5 is chosen.
             /// On T7/T8 the first digital I/O (FIO1) is used.
             /// Both always pair with the analog output DAC0.
             //DAC0 will cycle ~0.0 to ~5.0 volts in 1.0 volt increments.
             //FIO5/FIO1 will toggle output high (1) and low (0) states.
+
+            /*
+
             if (devType == LJM.CONSTANTS.dtT4)
             {
                 aNames = new string[] { "DAC0", "FIO5" };
@@ -86,6 +89,7 @@ public class LabJackManager : MonoBehaviour
             fioState = it % 2;  //0 or 1
             aValues = new double[] { dacVolt, (double)fioState };
             numFrames = aNames.Length;
+            
 
             // 4. Write the values to the hardware
             LJM.eWriteNames(handle, numFrames, aNames, aValues, ref errorAddress);
@@ -95,6 +99,8 @@ public class LabJackManager : MonoBehaviour
             for (int i = 0; i < numFrames; i++)
                 Debug.Log(" " + aNames[i] + " = " + aValues[i].ToString("F4") + ", ");
             Debug.Log("");
+
+            */
 
             /// 6. Choose which registers to read
             //Setup and call eReadNames to read AIN0, and FIO6 (T4) or
