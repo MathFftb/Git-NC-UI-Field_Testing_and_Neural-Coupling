@@ -1,6 +1,7 @@
 using UnityEngine;
 using LabJack;
 using TMPro;
+using System.Threading;
 
 // Using a Labjack T7
 
@@ -25,7 +26,16 @@ public class LabJackManager : MonoBehaviour
 
     int skippedIntervals = 0;
 
+    private int deviceHandle = 0;
+    private double ainValue = 0.0;
+    public bool isRunning = false;
+    public bool isRecording = false;
+    public bool isConnected = false;
 
+    private Thread readThread;
+
+    public double recordedValue;
+    public string recordedString;
     public TMP_Text displayEntry;
 
     // Start is called once before the first execution of Update after the MonoBehaviour is created
@@ -33,23 +43,28 @@ public class LabJackManager : MonoBehaviour
     {
         InitializeValues();
         ConnectLabJack();
-        MainLoop();
-        DisconnectLabJack();
+        
     }
 
     // Update is called once per frame
     void Update()
     {
-
+        displayEntry.text = recordedString;
     }
 
-    public void MainLoop()
+    public void FullRecordLoop()
+    {
+        StartRecording();
+        
+        //DisconnectLabJack();
+    }
+
+    public void ReadLoop()
     {
         // Main loop: Read Every Second
-        
+
         int it = 0; //Loop counter; incremented later.
-        double dacVolt = 0.0;
-        int fioState = 0;
+
         Debug.Log("\nStarting read loop.");
 
         /// StartInterval() Method:
@@ -64,43 +79,8 @@ public class LabJackManager : MonoBehaviour
         // 1. While statement: Lets the example keep running until you tap any key—a simple, cross‑platform “stop button”.
         //while (!Console.KeyAvailable) //: Console.KeyAvailable: becomes true when the user has pressed a key that hasn’t been read yet.
         int iterations = 0;
-        while (iterations < 10)
+        while (iterations < 30)
         {
-            /// 2. Choose which registers to write to 
-            /// using eWriteNames()
-            /// On T7/T8 the first digital I/O (FIO1) is used.
-            /// Both always pair with the analog output DAC0.
-            //DAC0 will cycle ~0.0 to ~5.0 volts in 1.0 volt increments.
-            //FIO5/FIO1 will toggle output high (1) and low (0) states.
-
-            /*
-
-            if (devType == LJM.CONSTANTS.dtT4)
-            {
-                aNames = new string[] { "DAC0", "FIO5" };
-            }
-            else
-            {
-                aNames = new string[] { "DAC0", "FIO1" };
-            }
-
-            // 3. Generate values to send
-            dacVolt = it % 6.0;  //0-5
-            fioState = it % 2;  //0 or 1
-            aValues = new double[] { dacVolt, (double)fioState };
-            numFrames = aNames.Length;
-            
-
-            // 4. Write the values to the hardware
-            LJM.eWriteNames(handle, numFrames, aNames, aValues, ref errorAddress);
-
-            // 5. Log what was written
-            Debug.Log("\neWriteNames :");
-            for (int i = 0; i < numFrames; i++)
-                Debug.Log(" " + aNames[i] + " = " + aValues[i].ToString("F4") + ", ");
-            Debug.Log("");
-
-            */
 
             /// 6. Choose which registers to read
             //Setup and call eReadNames to read AIN0, and FIO6 (T4) or
@@ -123,10 +103,13 @@ public class LabJackManager : MonoBehaviour
             Debug.Log("eReadNames  :");
             for (int i = 0; i < numFrames; i++)
                 Debug.Log(" " + aNames[i] + " = " + aValues[i].ToString("F4") + ", ");
-            Debug.Log("");
 
             // 8b. Write the entry in a TMP display in the Unity UI.
-            displayEntry.text = aNames[1] + "=" + aValues[1].ToString("F4");
+            recordedString = aNames[0] + "=" + aValues[0].ToString("F4");
+            Debug.Log("Recorded string:" + recordedString);
+            // not possible if using a different thread from Unity
+            //displayEntry.text = aNames[1] + "=" + aValues[1].ToString("F4");
+
 
             // 9. Housekeeping for next iteration
             it++;
@@ -141,8 +124,10 @@ public class LabJackManager : MonoBehaviour
             // 11. Loop ends
 
             ++iterations;
-            Debug.Log(iterations);
+            Debug.Log($"End of Iteration #{iterations}.");
         }
+
+        StopRecording();
     }
 
     public void ConnectLabJack()
@@ -159,6 +144,8 @@ public class LabJackManager : MonoBehaviour
         Debug.Log("Opened a LabJack with Device type: " + devType + ", Connection type: " + conType + ",");
         Debug.Log("  Serial number: " + serNum + ", IP address: " + ipAddrStr + ", Port: " + port + ",");
         Debug.Log("  Max bytes per MB: " + maxBytesPerMB);
+        isConnected = true;
+
     }
 
     public void ConfigLabJack()
@@ -211,6 +198,7 @@ public class LabJackManager : MonoBehaviour
     {
         //LJM.CleanInterval(intervalHandle);
         LJM.CloseAll();
+        isConnected = false;
         Debug.Log("Done");
     }
 
@@ -231,5 +219,59 @@ public class LabJackManager : MonoBehaviour
         numFrames = 0;
 
         Debug.Log("Values Initialized");
+    }
+
+    public void StartRecording()
+    {
+        if (!isConnected)
+        {
+            Debug.LogError("Cannot start stream. LabJack is not connected.");
+            //UpdateStatus("No connected LabJack.");
+            return;
+        }
+ 
+        if (!isRunning)
+        {
+            Debug.Log("Starting stream...");
+            isRunning = true;
+ 
+            // Start the background thread for reading
+            readThread = new Thread(ReadLoop);
+            readThread.IsBackground = true;
+            readThread.Start();
+ 
+            //UpdateStatus("Streaming started...");
+ 
+            //stopStreamButton.interactable = true;
+            //recordButton.interactable = true;
+            //startStreamButton.interactable = false;
+        }
+    }
+
+    public void StopRecording()
+    {
+        if (isRunning)
+        {
+            Debug.Log("Stopping stream...");
+            isRunning = false;
+ 
+            // Wait for the thread to terminate
+            if (readThread != null && readThread.IsAlive)
+            {
+                readThread.Join();
+            }
+ 
+            //UpdateStatus("Streaming stopped.");
+ 
+            // Stop recording if it was active
+            if (isRecording)
+            {
+                StopRecording();
+            }
+ 
+            //stopStreamButton.interactable = false;
+            //recordButton.interactable = false;
+            //startStreamButton.interactable = true;
+        }
     }
 }
