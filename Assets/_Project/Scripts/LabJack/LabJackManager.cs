@@ -229,7 +229,7 @@ public class LabJackManager : MonoBehaviour
             //UpdateStatus("No connected LabJack.");
             return;
         }
- 
+
         if (!isRunning)
         {
             Debug.Log("Starting stream...");
