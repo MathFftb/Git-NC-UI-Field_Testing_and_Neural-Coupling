@@ -8,6 +8,7 @@ using NUnit.Framework;
 using JetBrains.Annotations;
 using UnityEditor;
 using System.CodeDom;
+using System.IO;
 
 // Using a Labjack T7
 public class LabJackTester : MonoBehaviour
@@ -54,6 +55,15 @@ public class LabJackTester : MonoBehaviour
         {
             return $"AIN0 = {AIN0}\n";
         }
+
+        public string ToCsv()
+        {
+            return $"{AIN0},";
+        }
+        public static string CsvHeader()
+        {
+            return "AIN0";
+        }
     }
     [SerializeField]
     private DataPoint aDataPoint;
@@ -66,6 +76,8 @@ public class LabJackTester : MonoBehaviour
 
     private double[] bufferToSave;
     public int sizeOfBufferToSave = 100000000;
+
+    public string bufferCsvFormatted;
 
 
     // Start is called once before the first execution of Update after the MonoBehaviour is created
@@ -140,7 +152,7 @@ public class LabJackTester : MonoBehaviour
             Debug.Log("Recorded string:" + recordedString);
             //displayEntry.text = aNames[1] + "=" + aValues[1].ToString("F4");// not possible if using a different thread from Unity: use in Update()
 
-            // 8c. Fill the buffer with the new entry
+            // 8c. Fill the buffers with the new entry
             aDataPoint.AIN0 = aValues[0];
             circularBuffer.Add(aDataPoint);
             bufferToSave[iterations] = aValues[0];
@@ -317,6 +329,17 @@ public class LabJackTester : MonoBehaviour
             //recordButton.interactable = false;
             //startStreamButton.interactable = true;
         }
+    }
+
+    public void StoreBufferedData()
+    {
+        string path = "";
+        File.WriteAllText(path, bufferCsvFormatted);
+    }
+
+    public void TransformBufferToCsv()
+    {
+        bufferCsvFormatted = CsvConverter.ToCsv(bufferToSave, dp =>CsvConverter.ToCsv(dp), "DataPoint.Header()");
     }
 
     private void HandleOnPlayModeChanged(PlayModeStateChange state)
