@@ -1,10 +1,13 @@
 using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
 using JetBrains.Annotations;
 using UnityEngine;
 
 
 
-
+[Serializable]
 public class CircularBuffer<T>
 {
     private T[] buffer;
@@ -28,13 +31,15 @@ public class CircularBuffer<T>
     public bool isEmpty => !isFull && head == tail;
     public bool IsFull => isFull;
 
+    StringBuilder sb = new StringBuilder();
+
     // Constructor
     public CircularBuffer(int size)
     {
         if (size <= 0)
             throw new ArgumentException("error: buffer size cannot be < 0");
 
-        buffer = new T[Capacity];
+        buffer = new T[size];
         head = 0;
         tail = 0;
         isFull = false;
@@ -80,7 +85,7 @@ public class CircularBuffer<T>
     /// <summary>
     /// Returns the oldest item without removing it.
     /// </summary>
-    public T PeekLast()
+    public T PeekOldest()
     {
         if (isEmpty)
             throw new InvalidOperationException("Buffer is empty.");
@@ -97,4 +102,43 @@ public class CircularBuffer<T>
         isFull = false;
     }
 
+    // Returns the buffer as an array from head to tail
+    public T[] ToArray()
+    {
+        //int count = this.Count; // Uncomment and replace Capacity by count to produce Arrays without null values but of size < Capacity
+        T[] arrayBuffer = new T[Capacity];
+        int indexBuffer;
+
+        for (int i = 0; i < Capacity; ++i)
+        {
+            indexBuffer = (head + i) % Capacity;
+            arrayBuffer[i] = buffer[indexBuffer];
+        }
+        return arrayBuffer;
+    }
+
+    // Fills caller‑supplied array; returns the number of elements copied.
+    public int CopyTo(T[] destination)
+    {
+        int n = Math.Min(destination.Length, Count);
+        for (int i = 0; i < n; i++)
+            destination[i] = buffer[(head + i) % Capacity];
+        return n;
+    }
+
+    public IEnumerator<T> GetEnumerator()
+    {
+        return (IEnumerator<T>)ToArray().GetEnumerator();
+    }
+
+    public override string ToString()
+    {
+        sb.Clear();
+        int count = Count;       
+        for (int i = 0; i < count; ++i)
+        {
+            sb.Append(buffer[(head + i) % Capacity].ToString());
+        }
+        return sb.ToString();
+    }
 }
