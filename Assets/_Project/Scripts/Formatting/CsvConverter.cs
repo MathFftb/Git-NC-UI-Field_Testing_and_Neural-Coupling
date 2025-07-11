@@ -1,6 +1,7 @@
 using System;
 using System.Data;
 using System.Data.Common;
+using System.IO;
 using System.Text;
 using NUnit.Framework;
 using UnityEngine;
@@ -39,7 +40,7 @@ public class CsvConverter : MonoBehaviour
         ToCsv(ds, db => ToCsv(db));
 
         DataPoint[] ds2 = new DataPoint[10];
-        ToCsv(ds2, dp => dp.ToCsv(), DataPoint.CsvHeader()); 
+        ToCsv(ds2, dp => dp.ToCsv(), DataPoint.CsvHeader());
     }
 
     private void justCompileTest()
@@ -48,16 +49,16 @@ public class CsvConverter : MonoBehaviour
         ToCsv(ds, db => ToCsv(db));
 
         DataPoint[] ds2 = new DataPoint[10];
-        ToCsv(ds2, dp => dp.ToCsv(), DataPoint.CsvHeader()); 
+        ToCsv(ds2, dp => dp.ToCsv(), DataPoint.CsvHeader());
     }
 
-    public static string ToCsv<T>(T[] dataSet, Func<T, string> toCsvLine, string header = null)
+    public static string ToCsv<T>(T[] dataset, Func<T, string> toCsvLine, string header = null)
     {
         StringBuilder sb = new StringBuilder();
         if (!string.IsNullOrEmpty(header))
             sb.AppendLine(header);
 
-        foreach (T dataPoint in dataSet)
+        foreach (T dataPoint in dataset)
         {
             sb.AppendLine(toCsvLine(dataPoint));
         }
@@ -68,6 +69,29 @@ public class CsvConverter : MonoBehaviour
     public static string ToCsv(double dp)
     {
         return dp.ToString();
+    }
+
+
+    // Segment the process to avoid memory issues in Unity when passing by a string
+    public static void SaveAsCsv<T>(T[] dataset, Func<T, string> toCsvLine, string saveFilePath, string header = null)
+    {
+        // Opens the file where the csv si going to be saved, or creates it if it did not exist
+        // The "using" statement automatically calls Dispose on the object when the code that is using it has completed.
+        using (StreamWriter writer = new StreamWriter(saveFilePath))
+        {
+            // Write Header if given
+            if (!string.IsNullOrEmpty(header))
+                writer.WriteLine(header);
+
+            // Save each datapoint as a csv encoded line
+            foreach (T dataPoint in dataset)
+            {
+                writer.WriteLine(toCsvLine(dataPoint));
+            }
+        }
+        Debug.Log($"Csv save created at {saveFilePath}");
+        // Note: this method would only append a pre-existing file and not overwrite it
+
     }
 
     

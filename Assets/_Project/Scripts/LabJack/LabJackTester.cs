@@ -79,6 +79,12 @@ public class LabJackTester : MonoBehaviour
 
     public string bufferCsvFormatted;
 
+    public double maxTimeReadLoop;
+    public double timeReading;
+    public bool timerIsRunning;
+
+    public int totalSkippedIntervals = 0;
+
 
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
@@ -93,6 +99,13 @@ public class LabJackTester : MonoBehaviour
     {
         displayEntry.text = recordedString;
         displayBuffer.text = circularBuffer.ToString();
+        if (timerIsRunning)
+        {
+            timeReading += Time.deltaTime;
+            if (timeReading > maxTimeReadLoop)
+                timerIsRunning = false;         
+        }
+
     }
 
     public void FullRecordLoop()
@@ -118,14 +131,7 @@ public class LabJackTester : MonoBehaviour
         ///     wait/blocks/sleeps until next interval occurence
         LJM.StartInterval(intervalHandle, IntervalReadingInMicroseconds);
 
-        // While Loop:
-        // 1. While statement: Lets the example keep running until you tap any key—a simple, cross‑platform “stop button”.
-        //while (!Console.KeyAvailable) //: Console.KeyAvailable: becomes true when the user has pressed a key that hasn’t been read yet.
-        int iterations = 0;
-        while (iterations < MaxIterations)
-        {
-
-            /// 6. Choose which registers to read
+        /// 6. Choose which registers to read
             //Setup and call eReadNames to read AIN0, and FIO6 (T4) or
             //FIO2 (T7 and other devices).
             if (devType == LJM.CONSTANTS.dtT4)
@@ -138,6 +144,22 @@ public class LabJackTester : MonoBehaviour
             }
             aValues = new double[] { 0, 0 };
             numFrames = aNames.Length;
+
+        // While Loop:
+        // 1. While statement: Lets the example keep running until you tap any key—a simple, cross‑platform “stop button”.
+        
+        int iterations = 0;
+        
+        totalSkippedIntervals = 0;
+        timerIsRunning = true;
+        timeReading = 0;
+        //while (!Console.KeyAvailable) //: Console.KeyAvailable: becomes true when the user has pressed a key that hasn’t been read yet
+        //while (iterations < MaxIterations)
+        while (timerIsRunning)
+        {
+
+            //Note: all the logs create performance issues, 
+            // so it might be beneficial to comment it all for high frequency recordings
 
             // 7. Read the values
             LJM.eReadNames(handle, numFrames, aNames, aValues, ref errorAddress);
@@ -169,12 +191,14 @@ public class LabJackTester : MonoBehaviour
             if (skippedIntervals > 0)
             {
                 Debug.Log("SkippedIntervals: " + skippedIntervals);
+                totalSkippedIntervals += skippedIntervals;
             }
             // 11. Loop ends
             Debug.Log("Read Loop ended");
 
 
         }
+        timerIsRunning = false;
 
         StopRecording();
     }
@@ -333,13 +357,21 @@ public class LabJackTester : MonoBehaviour
 
     public void StoreBufferedData()
     {
-        string path = "";
+        string path = @"C:\Users\Mathieu\Desktop\Create with Code";
         File.WriteAllText(path, bufferCsvFormatted);
     }
 
     public void TransformBufferToCsv()
     {
         bufferCsvFormatted = CsvConverter.ToCsv(bufferToSave, dp =>CsvConverter.ToCsv(dp), "DataPoint.Header()");
+    }
+
+    public void SaveBufferAsCsv()
+    {
+        string projectPath = new DirectoryInfo(Application.dataPath).Parent.FullName;
+        string filePath = Path.Combine(projectPath, "output.csv");
+        string path = filePath;
+        CsvConverter.SaveAsCsv(bufferToSave, dp => CsvConverter.ToCsv(dp), path, "DataPoint.Deaher()");
     }
 
     private void HandleOnPlayModeChanged(PlayModeStateChange state)
