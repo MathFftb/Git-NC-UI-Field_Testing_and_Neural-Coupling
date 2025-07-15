@@ -179,5 +179,12 @@ public class XchartTester : MonoBehaviour
         line.lineType = LineType.Smooth;
         line.areaStyle.show = true;
     }*/
-    
+    public void AddPointsFromArray(float[] floatArray)
+    {
+        foreach (var value in floatArray)
+        {
+            serie.AddData(value);
+        }
+        
+    }
 }
