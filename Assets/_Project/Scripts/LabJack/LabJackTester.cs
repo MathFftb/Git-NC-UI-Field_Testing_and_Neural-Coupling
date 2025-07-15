@@ -2,10 +2,16 @@ using UnityEngine;
 using LabJack;
 using TMPro;
 using System.Threading;
+using System;
+using Unity.Profiling.LowLevel.Unsafe;
+using NUnit.Framework;
+using JetBrains.Annotations;
+using UnityEditor;
+using System.CodeDom;
+using System.IO;
 
 // Using a Labjack T7
-
-public class LabJackManager : MonoBehaviour
+public class LabJackTester : MonoBehaviour
 {
     int handle = 0;
     int devType = 0; // Device type (T4, T7, T8)
@@ -26,8 +32,6 @@ public class LabJackManager : MonoBehaviour
 
     int skippedIntervals = 0;
 
-    private int deviceHandle = 0;
-    private double ainValue = 0.0;
     public bool isRunning = false;
     public bool isRecording = false;
     public bool isConnected = false;
@@ -38,24 +42,76 @@ public class LabJackManager : MonoBehaviour
     public string recordedString;
     public TMP_Text displayEntry;
 
+    public TMP_Text displayBuffer;
+
+    public int MaxIterations = 30;
+
+    [Serializable]
+    struct DataPoint
+    {
+        public double AIN0;
+
+        public override string ToString()
+        {
+            return $"AIN0 = {AIN0}\n";
+        }
+
+        public string ToCsv()
+        {
+            return $"{AIN0},";
+        }
+        public static string CsvHeader()
+        {
+            return "AIN0";
+        }
+    }
+    [SerializeField]
+    private DataPoint aDataPoint;
+    [SerializeField]
+    private CircularBuffer<DataPoint> circularBuffer;
+    [SerializeField]
+    private int sizeOfCircularBuffer;
+
+    public int IntervalReadingInMicroseconds = 1000000;
+
+    private double[] bufferToSave;
+    public int sizeOfBufferToSave = 100000000;
+
+    public string bufferCsvFormatted;
+
+    public double maxTimeReadLoop;
+    public double timeReading;
+    public bool timerIsRunning;
+
+    public int totalSkippedIntervals = 0;
+
+
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
     {
         InitializeValues();
         ConnectLabJack();
-        
+
     }
 
     // Update is called once per frame
     void Update()
     {
         displayEntry.text = recordedString;
+        displayBuffer.text = circularBuffer.ToString();
+        if (timerIsRunning)
+        {
+            timeReading += Time.deltaTime;
+            if (timeReading > maxTimeReadLoop)
+                timerIsRunning = false;         
+        }
+
     }
 
     public void FullRecordLoop()
     {
         StartRecording();
-        
+
         //DisconnectLabJack();
     }
 
@@ -73,16 +129,9 @@ public class LabJackManager : MonoBehaviour
         /// Interval keeps reoccuring.
         /// Can be used with WaitForNextInterval(see inside while loop): 
         ///     wait/blocks/sleeps until next interval occurence
-        LJM.StartInterval(intervalHandle, 1000000);
+        LJM.StartInterval(intervalHandle, IntervalReadingInMicroseconds);
 
-        // While Loop:
-        // 1. While statement: Lets the example keep running until you tap any key—a simple, cross‑platform “stop button”.
-        //while (!Console.KeyAvailable) //: Console.KeyAvailable: becomes true when the user has pressed a key that hasn’t been read yet.
-        int iterations = 0;
-        while (iterations < 30)
-        {
-
-            /// 6. Choose which registers to read
+        /// 6. Choose which registers to read
             //Setup and call eReadNames to read AIN0, and FIO6 (T4) or
             //FIO2 (T7 and other devices).
             if (devType == LJM.CONSTANTS.dtT4)
@@ -96,6 +145,22 @@ public class LabJackManager : MonoBehaviour
             aValues = new double[] { 0, 0 };
             numFrames = aNames.Length;
 
+        // While Loop:
+        // 1. While statement: Lets the example keep running until you tap any key—a simple, cross‑platform “stop button”.
+        
+        int iterations = 0;
+        
+        totalSkippedIntervals = 0;
+        timerIsRunning = true;
+        timeReading = 0;
+        //while (!Console.KeyAvailable) //: Console.KeyAvailable: becomes true when the user has pressed a key that hasn’t been read yet
+        //while (iterations < MaxIterations)
+        while (timerIsRunning)
+        {
+
+            //Note: all the logs create performance issues, 
+            // so it might be beneficial to comment it all for high frequency recordings
+
             // 7. Read the values
             LJM.eReadNames(handle, numFrames, aNames, aValues, ref errorAddress);
 
@@ -107,12 +172,18 @@ public class LabJackManager : MonoBehaviour
             // 8b. Write the entry in a TMP display in the Unity UI.
             recordedString = aNames[0] + "=" + aValues[0].ToString("F4");
             Debug.Log("Recorded string:" + recordedString);
-            // not possible if using a different thread from Unity
-            //displayEntry.text = aNames[1] + "=" + aValues[1].ToString("F4");
+            //displayEntry.text = aNames[1] + "=" + aValues[1].ToString("F4");// not possible if using a different thread from Unity: use in Update()
 
+            // 8c. Fill the buffers with the new entry
+            aDataPoint.AIN0 = aValues[0];
+            circularBuffer.Add(aDataPoint);
+            bufferToSave[iterations] = aValues[0];
 
             // 9. Housekeeping for next iteration
             it++;
+
+            ++iterations;
+            Debug.Log($"End of Iteration #{iterations}.");
 
             // 10. Fixed‑rate timing
             //Wait for next 1 second interval
@@ -120,12 +191,14 @@ public class LabJackManager : MonoBehaviour
             if (skippedIntervals > 0)
             {
                 Debug.Log("SkippedIntervals: " + skippedIntervals);
+                totalSkippedIntervals += skippedIntervals;
             }
             // 11. Loop ends
+            Debug.Log("Read Loop ended");
 
-            ++iterations;
-            Debug.Log($"End of Iteration #{iterations}.");
+
         }
+        timerIsRunning = false;
 
         StopRecording();
     }
@@ -218,6 +291,13 @@ public class LabJackManager : MonoBehaviour
         intervalHandle = 1; // For timed reading every second
         numFrames = 0;
 
+        sizeOfCircularBuffer = 10;
+        circularBuffer = new CircularBuffer<DataPoint>(sizeOfCircularBuffer);
+
+        bufferToSave = new double[sizeOfBufferToSave];
+
+        EditorApplication.playModeStateChanged += HandleOnPlayModeChanged;
+        EditorApplication.pauseStateChanged += HandleOnPlayModeChanged;
         Debug.Log("Values Initialized");
     }
 
@@ -229,19 +309,19 @@ public class LabJackManager : MonoBehaviour
             //UpdateStatus("No connected LabJack.");
             return;
         }
- 
+
         if (!isRunning)
         {
             Debug.Log("Starting stream...");
             isRunning = true;
- 
+
             // Start the background thread for reading
             readThread = new Thread(ReadLoop);
             readThread.IsBackground = true;
             readThread.Start();
- 
+
             //UpdateStatus("Streaming started...");
- 
+
             //stopStreamButton.interactable = true;
             //recordButton.interactable = true;
             //startStreamButton.interactable = false;
@@ -254,24 +334,82 @@ public class LabJackManager : MonoBehaviour
         {
             Debug.Log("Stopping stream...");
             isRunning = false;
- 
+
             // Wait for the thread to terminate
             if (readThread != null && readThread.IsAlive)
             {
                 readThread.Join();
             }
- 
+
             //UpdateStatus("Streaming stopped.");
- 
-            // Stop recording if it was active
-            if (isRecording)
-            {
-                StopRecording();
-            }
- 
+
+            // // Stop recording if it was active
+            // if (isRecording)
+            // {
+            //     StopRecording();
+            // }
+
             //stopStreamButton.interactable = false;
             //recordButton.interactable = false;
             //startStreamButton.interactable = true;
         }
+    }
+
+    public void StoreBufferedData()
+    {
+        string path = @"C:\Users\Mathieu\Desktop\Create with Code";
+        File.WriteAllText(path, bufferCsvFormatted);
+    }
+
+    public void TransformBufferToCsv()
+    {
+        bufferCsvFormatted = CsvConverter.ToCsv(bufferToSave, dp =>CsvConverter.ToCsv(dp), "DataPoint.Header()");
+    }
+
+    public void SaveBufferAsCsv()
+    {
+        string projectPath = new DirectoryInfo(Application.dataPath).Parent.FullName;
+        string filePath = Path.Combine(projectPath, "output.csv");
+        string path = filePath;
+        CsvConverter.SaveAsCsv(bufferToSave, dp => CsvConverter.ToCsv(dp), path, "DataPoint.Deaher()");
+    }
+
+    private void HandleOnPlayModeChanged(PlayModeStateChange state)
+    {
+        // This method is run whenever the playmode state is changed.
+
+        if (EditorApplication.isPaused)
+        {
+            // do stuff when the editor is paused.
+            StopRecording();
+        }
+        if (!EditorApplication.isUpdating)
+        {
+            StopRecording();
+        }
+
+        if (!EditorApplication.isPlaying)
+        {
+            StopRecording();
+        }
+    }
+    private void HandleOnPlayModeChanged(PauseState state)
+    {
+        // This method is run whenever the playmode state is changed.
+
+        if (EditorApplication.isPaused)
+        {
+            // do stuff when the editor is paused.
+            StopRecording();
+        }
+        if (!EditorApplication.isUpdating)
+        {
+            StopRecording();
+        }
+        
+        if (!EditorApplication.isPlaying)
+            {
+                StopRecording();
+            }
     }
 }
