@@ -117,7 +117,7 @@ public class XChartLabJackTester : MonoBehaviour
     [SerializeField]
     private int sizeOfCircularBuffer;
 
-    List<DataPoint> latestDatapointsList = new List<DataPoint>();
+    //List<DataPoint> latestDatapointsList = new List<DataPoint>();
 
     
     
@@ -161,7 +161,7 @@ public class XChartLabJackTester : MonoBehaviour
         InitializeValues();
         ConnectLabJack();
         dataArray = new DataPoint[dataArraySize];
-        latestDatapointsList = new List<DataPoint>();
+        //latestDatapointsList = new List<DataPoint>();
     }
 
     // Update is called once per frame
@@ -183,7 +183,7 @@ public class XChartLabJackTester : MonoBehaviour
             if (UpdateOneByOne)
             {
                 UpdateChartLatestDatapoint();
-                latestDatapointsList.Clear();
+                //latestDatapointsList.Clear();
             }
             else
             {
@@ -207,7 +207,7 @@ public class XChartLabJackTester : MonoBehaviour
         // if (latestDatapointsList.Count != 0)
         // {
         //      Debug.Log("Adding List of Datapoints");
-        // //     foreach (DataPoint dataPoint in latestDatapointsList)
+        // //     foreach (DataPoint dataPoint in latestDatapointsList
         // //     {
         // //         //AddTorqueDataPoint(dataPoint);
         // //         //chart.RefreshChart();
@@ -303,7 +303,7 @@ public class XChartLabJackTester : MonoBehaviour
         timeReading = 0;
         //while (!Console.KeyAvailable) //: Console.KeyAvailable: becomes true when the user has pressed a key that hasn’t been read yet
         //while (iterations < MaxIterations)
-        while (timerIsRunning)
+        while (timerIsRunning && isRunning)
         {
 
             //Note: all the logs create performance issues, 
@@ -324,7 +324,7 @@ public class XChartLabJackTester : MonoBehaviour
                 latestDataPoint.time = DateTime.Now;
             }
 
-            latestDatapointsList.Add(latestDataPoint);
+            //latestDatapointsList.Add(latestDataPoint);
 
             dataArray[iterations] = latestDataPoint;
             //circularBuffer.Add(latestDataPoint);
@@ -353,7 +353,7 @@ public class XChartLabJackTester : MonoBehaviour
         timerIsRunning = false;
 
         StopRecording();
-        latestDatapointsList.Clear();
+        //latestDatapointsList.Clear();
     }
 
     
@@ -509,7 +509,6 @@ public class XChartLabJackTester : MonoBehaviour
         {
             Debug.Log("Stopping stream...");
             isRunning = false;
-
             // Wait for the thread to terminate
             if (readThread != null && readThread.IsAlive)
             {
