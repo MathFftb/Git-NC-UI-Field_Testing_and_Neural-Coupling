@@ -18,7 +18,7 @@ public class XChartLabJackTester : MonoBehaviour
     public LineChart chart;
     public Serie serie;
 
-    public int serieMaxCache = 500;
+    public int serieMaxCache = 5000;
     public int windowSizeMs = 5000;
     public double intervalLabel;
     public TMP_InputField serieMaxCacheInputField;
@@ -168,8 +168,12 @@ public class XChartLabJackTester : MonoBehaviour
         // Optional: Customize appearance
         chart.GetSerie(0).symbol.show = false;
 
+        //Set serie max cache based on the desired visibility window and the reading frequency
         serie = chart.GetSerie(0);
+        double readingFreq = 1000000 / IntervalReadingInMicroseconds;
+        serieMaxCache = (int)Math.Round(windowSizeMs/1000 * readingFreq, 0); 
         serie.maxCache = serieMaxCache;
+        
         serie.lineStyle.width = serieLineWidth;  // Default is usually 2 or 3; set to 1 for thin
 
         // if (useCustomXAxis)
@@ -537,7 +541,7 @@ public class XChartLabJackTester : MonoBehaviour
             aNames = new string[] { "AIN0_NEGATIVE_CH",
                                     "AIN0_SETTLING_US"};
 
-            aValues = new double[] { 199, 0 };
+            aValues = new double[] { 199, 0 };  // Single-ended, auto settling
             // By definition numFrames = size of aNames
             numFrames = aNames.Length;
 

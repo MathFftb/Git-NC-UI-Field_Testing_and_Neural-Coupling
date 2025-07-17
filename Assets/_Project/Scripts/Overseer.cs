@@ -37,6 +37,8 @@ public class Overseer : MonoBehaviour
     */
 
     [SerializeField] private PatientProfile patientProfile;
+    
+    public LabJackObject LJM;
 
     void Start()
     {
@@ -62,6 +64,7 @@ public class Overseer : MonoBehaviour
     // Old Code starts here 
     // The Overseer is the vehicle of information across scenes
     public static Overseer Instance;
+
     
     private void Awake()
     {
@@ -76,6 +79,8 @@ public class Overseer : MonoBehaviour
         DontDestroyOnLoad(gameObject);
 
         InitializeFilePathAndName();
+
+        LJM.InitializeAllValues();
 
         LoadBestScore();
     }
