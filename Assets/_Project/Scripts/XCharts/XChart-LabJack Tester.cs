@@ -10,6 +10,7 @@ using System.Collections.Generic;
 using NUnit.Framework;
 using UnityEngine.UI;
 using System.Diagnostics.CodeAnalysis;
+using UnityEngine.Lumin;
 public class XChartLabJackTester : MonoBehaviour
 {
     #region "XChart Variables"
@@ -18,7 +19,12 @@ public class XChartLabJackTester : MonoBehaviour
     public Serie serie;
 
     public int serieMaxCache = 500;
-    public float serieLineWidth = 0.5f; 
+    public int windowSizeMs = 5000;
+    public double intervalLabel;
+    public TMP_InputField serieMaxCacheInputField;
+    public TMP_InputField windowSizeMsInputField;
+
+    public float serieLineWidth = 0.5f;
 
     public double aValue;
 
@@ -26,10 +32,20 @@ public class XChartLabJackTester : MonoBehaviour
 
     public bool UpdateOneByOne = true;
     public bool updatingChart = true;
+    public bool useSlidingWindow = true;
+    public bool useSlidingXAxis = true;
+    public bool useCustomXAxis = true;
     public Toggle UpdateOneByOneToggle;
     public Toggle updatingChartInput;
+    public Toggle useSlidingWindowUserInput;
+    public Toggle useSlidingXAxisUserInput;
+    public Toggle useCustomXAxisToggle;
 
     public int maxDataPoints = 100;
+
+    public double serieMaxValue = 0;
+    public double serieMinValue = 0;
+
 
 
 
@@ -46,7 +62,7 @@ public class XChartLabJackTester : MonoBehaviour
 
     private double elapsedMs = 0;
 
-    
+
     int handle = 0;
     int devType = 0; // Device type (T4, T7, T8)
     int conType = 0; // USB, Ethernet, WiFi
@@ -66,7 +82,7 @@ public class XChartLabJackTester : MonoBehaviour
 
     int skippedIntervals = 0;
 
-    
+
 
     private Thread readThread;
 
@@ -119,8 +135,8 @@ public class XChartLabJackTester : MonoBehaviour
 
     //List<DataPoint> latestDatapointsList = new List<DataPoint>();
 
-    
-    
+
+
 
     DateTime startTime;
 
@@ -132,10 +148,11 @@ public class XChartLabJackTester : MonoBehaviour
     [Header("Loop Variables")]
     public int dataArraySize = 100000;
     private DataPoint[] dataArray;
-    
+
     public int latestCheckedIteration = 0;
     public int currentIteration = 0;
     int iterations = 0;
+
 
     #endregion
 
@@ -155,7 +172,35 @@ public class XChartLabJackTester : MonoBehaviour
         serie.maxCache = serieMaxCache;
         serie.lineStyle.width = serieLineWidth;  // Default is usually 2 or 3; set to 1 for thin
 
-        
+        // if (useCustomXAxis)
+        // {
+        //     // 1. Use AxisType.Time for XAxis
+        //     // This enables built-in date/time formatting.
+        //     var xAxis = chart.GetChartComponent<XAxis>();
+        //     xAxis.type = Axis.AxisType.Time;
+
+        //     // 2. Set the Label Formatter
+        //     //  Format the timestamps in a readable way (e.g., HH:mm:ss or mm:ss.SS):
+        //     // xAxis.axisLabel.formatter = "mm:ss";
+
+        //     // // Or for more detail:
+        //     // xAxis.axisLabel.formatter = "HH:mm:ss.fff";
+
+        //     // 3. Avoid Overlap with Label Interval or Rotation
+        //     // Let XCharts automatically avoid overlapping labels by skipping some or rotate them:
+
+        //     // Option A: Auto Skip Labels
+        //     xAxis.axisLabel.interval = windowSizeMs/5000; // auto-calculate
+        //     // Option B: Rotate Labels for Readability
+        //     //xAxis.axisLabel.rotate = 30; // degrees
+
+        //     // 4. Adjust Label Margin
+        //     // Give more space between labels and axis line:
+        //     // xAxis.axisLabel.margin = 10;
+        // }
+
+
+
 
         //LabJack
         InitializeValues();
@@ -190,6 +235,8 @@ public class XChartLabJackTester : MonoBehaviour
                 UpdateChartAllMissingDataPoints();
             }
         }
+
+
 
     }
 
@@ -233,7 +280,7 @@ public class XChartLabJackTester : MonoBehaviour
 
     #endregion
 
-    #region "LabJack Main Methods
+    #region "LabJack Main Methods"
 
     public void StartRecording()
     {
@@ -260,6 +307,8 @@ public class XChartLabJackTester : MonoBehaviour
             //recordButton.interactable = true;
             //startStreamButton.interactable = false;
         }
+
+
     }
 
     public void ReadLoop()
@@ -268,7 +317,7 @@ public class XChartLabJackTester : MonoBehaviour
 
         Debug.Log("\nStarting read loop.");
 
-        
+
         dataArray = new DataPoint[dataArraySize];
 
         /// StartInterval() Method:
@@ -356,7 +405,7 @@ public class XChartLabJackTester : MonoBehaviour
         //latestDatapointsList.Clear();
     }
 
-    
+
 
     #endregion
 
@@ -392,8 +441,61 @@ public class XChartLabJackTester : MonoBehaviour
     {
         // Later, for each new data point:
         elapsedMs = (dataPoint.time - startTime).TotalMilliseconds;
-        serie.AddData(elapsedMs, dataPoint.AIN0);
 
+        // Formatting and truncating to seconds
+        float elapsedSec = (float)elapsedMs / 1000;
+        //elapsedSec = Mathf.Round(elapsedSec * 1000f)/1000f;
+
+        float windowSizeSec = (float)windowSizeMs / 1000;
+        //windowSizeSec = Mathf.Round( windowSizeSec * 1000f)/1000f;
+        //Debug.Log($"Elapsed Seconds = {elapsedSec}; Elapsed seconds as double = {(double)elapsedSec}; Windows Sec = {windowSizeSec}");
+
+        serie.AddData(elapsedSec, dataPoint.AIN0); // int type considering with a max frequency of 100Hz we do not get more than 10^-3 sec precision
+
+        if (useSlidingWindow && serie.dataCount > serieMaxCache)
+        {
+            serie.RemoveData(0);
+        }
+
+        if (useSlidingXAxis
+        // && elapsedMs > windowSizeMs
+         )
+        {
+            var xAxis = chart.GetChartComponent<XAxis>();
+            // xAxis.minMaxType = Axis.AxisMinMaxType.Custom;
+            //  xAxis.min = elapsedMs/1000 - windowSizeMs/1000;
+            // xAxis.max = elapsedSec;
+            xAxis.minMaxType = Axis.AxisMinMaxType.Custom;
+            // xAxis.max = Math.Round(elapsedSec * 100) / 100;
+            // xAxis.min = Math.Round((elapsedSec - windowSizeSec) * 100) / 100; ;
+            xAxis.max = Math.Round(elapsedSec, 2);
+            xAxis.min = Math.Round(elapsedSec-windowSizeSec, 2);
+            //Debug.Log($"min xaxis = {xAxis.min}; max xaxis = {xAxis.max}");
+
+
+        }
+
+
+        // Updating the Yaxis borders
+        if (dataPoint.AIN0 > serieMaxValue)
+        {
+            var yAxis = chart.GetChartComponent<YAxis>();
+            yAxis.minMaxType = Axis.AxisMinMaxType.Custom;
+
+            serieMaxValue = dataPoint.AIN0;
+
+            yAxis.max = Math.Round(serieMaxValue, 2);
+        }
+        else if (dataPoint.AIN0 < serieMinValue)
+        {
+            var yAxis = chart.GetChartComponent<YAxis>();
+            yAxis.minMaxType = Axis.AxisMinMaxType.Custom;
+
+            serieMinValue = dataPoint.AIN0;
+
+            yAxis.min = Math.Round(serieMinValue, 2);
+        }
+        // Keep data length manageable
         // if (serie.dataCount > maxDataPoints)
         // {
         //     serie.RemoveData(0);
@@ -548,6 +650,111 @@ public class XChartLabJackTester : MonoBehaviour
         recordWithDateTime = recordWithDateTimeInput.isOn;
     }
 
+    public void UpdateSerieMaxCache()
+    {
+        if (serieMaxCacheInputField.text != "")
+        {
+            serieMaxCache = int.Parse(serieMaxCacheInputField.text);
+        }
+    }
+
+    public void UpdateUseCustomXAxis()
+    {
+        useCustomXAxis = useCustomXAxisToggle.isOn;
+
+        // if (useCustomXAxis)
+        // {
+        //     // 1. Use AxisType.Time for XAxis
+        //     // This enables built-in date/time formatting.
+        //     var xAxis = chart.GetChartComponent<XAxis>();
+        //     xAxis.type = Axis.AxisType.Time;
+
+        //     // 2. Set the Label Formatter
+        //     //  Format the timestamps in a readable way (e.g., HH:mm:ss or mm:ss.SS):
+        //     // xAxis.axisLabel.formatter = "mm:ss";
+
+        //     // // Or for more detail:
+        //     // xAxis.axisLabel.formatter = "HH:mm:ss.fff";
+
+        //     // 3. Avoid Overlap with Label Interval or Rotation
+        //     // Let XCharts automatically avoid overlapping labels by skipping some or rotate them:
+
+        //     // Option A: Auto Skip Labels
+        //     xAxis.axisLabel.interval = windowSizeMs / 5000; // auto-calculate
+        //                                                     // Option B: Rotate Labels for Readability
+        //                                                     //xAxis.axisLabel.rotate = 30; // degrees
+
+        //     // 4. Adjust Label Margin
+        //     // Give more space between labels and axis line:
+        //     // xAxis.axisLabel.margin = 10;
+        //     intervalLabel = xAxis.axisLabel.interval;
+        //     Debug.Log(xAxis.axisLabel.formatter);
+
+        // }
+        // else
+        // {
+        //     var xAxis = chart.GetChartComponent<XAxis>();
+        //     xAxis.type = Axis.AxisType.Value;
+        //     Debug.Log(xAxis.axisLabel.formatter);
+        //     xAxis.axisLabel.interval = windowSizeMs/5;
+        //     intervalLabel = xAxis.axisLabel.interval;
+        //     xAxis.axisLabel.rotate = 30; // degrees
+        //     intervalHandle = xAxis.axisLabel.interval;
+        // }
+
+
+    }
+
+    [ContextMenu("Update XAxis label interval")]
+    public void UpdateLabelInterval()
+    {
+
+
+        var xAxis = chart.GetChartComponent<XAxis>();
+
+        // Debug.Log("Formatter after delay: " + xAxis.axisLabel.formatter);
+
+        //xAxis.type = Axis.AxisType.Value;
+
+        //xAxis.interval = intervalLabel;
+
+        //xAxis.axisLabel.interval = 0;
+
+        // xAxis.axisLabel.formatterFunction = value => ((double)value).ToString("0");
+        // // static (value) =>
+        // // {
+        // //     return Mathf.RoundToInt((float)value).ToString();
+        // // };
+        //xAxis.axisLabel.interval = 0; // Let XCharts auto-calculate spacing
+        xAxis.axisLabel.rotate = 30;  // Tilt to reduce clutter
+
+        //xAxis.splitNumber = 4; // number of labels on the xaxis
+
+        // xAxis.axisLabel.formatter = "{value:0}";
+        // xAxis.axisLabel.formatter = {value:0.0}s;
+        // Debug.Log("Formatter immediately: " + xAxis.axisLabel.formatter);
+
+    }
+
+
+    public void UpdateUseSlidingWindow()
+    {
+        useSlidingWindow = useSlidingWindowUserInput.isOn;
+    }
+
+    public void UpdateUseSlidingXAxis()
+    {
+        useSlidingXAxis = useSlidingXAxisUserInput.isOn;
+    }
+
+    public void UpdateWindowSizeMs()
+    {
+        if (windowSizeMsInputField.text != "")
+        {
+            windowSizeMs = int.Parse(windowSizeMsInputField.text);
+        }
+    }
+
 
     private void HandleOnPlayModeChanged(PlayModeStateChange state)
     {
@@ -592,6 +799,20 @@ public class XChartLabJackTester : MonoBehaviour
     {
         if (ReadingFrequencyInputField.text != "" && ReadingFrequencyInputField.text != "0")
             IntervalReadingInMicroseconds = (int)Math.Round(1000000 / double.Parse(ReadingFrequencyInputField.text));
+    }
+
+    [ContextMenu("Toggle XAxis type Value/Time")]
+    public void ToggleXAxisType()
+    {
+        var xAxis = chart.GetChartComponent<XAxis>();
+        if (xAxis.type == Axis.AxisType.Value)
+        {
+            xAxis.type = Axis.AxisType.Time;
+        }
+        else if (xAxis.type == Axis.AxisType.Time)
+        {
+            xAxis.type = Axis.AxisType.Value;
+        }
     }
 
     #endregion
