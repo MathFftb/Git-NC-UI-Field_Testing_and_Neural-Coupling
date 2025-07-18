@@ -48,7 +48,14 @@ public class Overseer : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
-        
+        //LabJack 
+        // LabJack
+        if (LJM.timerIsRunning)
+        {
+            LJM.timeReadingSec += Time.deltaTime;
+            if (LJM.timeReadingSec > LJM.maxTimeReadLoopSec)
+                LJM.timerIsRunning = false;
+        }
     }
 
     public PatientProfile getProfile()
@@ -65,7 +72,7 @@ public class Overseer : MonoBehaviour
     // The Overseer is the vehicle of information across scenes
     public static Overseer Instance;
 
-    
+
     private void Awake()
     {
         // Singleton
@@ -83,6 +90,7 @@ public class Overseer : MonoBehaviour
         LJM.InitializeAllValues();
 
         LoadBestScore();
+        Debug.Log("Called Awake Overseer");
     }
 
     // Persistence Implementation
