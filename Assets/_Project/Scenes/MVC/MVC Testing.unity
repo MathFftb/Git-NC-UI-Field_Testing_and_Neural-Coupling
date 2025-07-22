@@ -3689,13 +3689,18 @@ MonoBehaviour:
     totalSkippedIntervals: 0
   timeCounter: 0
   elapsedMillisec: 0
+  elapsedSec: 0
+  windowSizeSec: 0
   currentIteration: 0
   latestCheckedIteration: 0
+  serieLastIndex: 0
+  clipWindowEdgeSerieIndex: 0
   updatingChart: 1
   useSlidingDataWindow: 1
+  useCustomClipChartMethod: 1
   useSlidingXAxis: 1
   serieMaxCache: 5000
-  serieWindowMaxCache: 500
+  clipWindowMaxCache: 500
 --- !u!1 &283149761
 GameObject:
   m_ObjectHideFlags: 1
@@ -7900,7 +7905,7 @@ MonoBehaviour:
   m_Tooltips:
   - m_Show: 1
     m_Type: 0
-    m_Trigger: 3
+    m_Trigger: 0
     m_TriggerOn: 0
     m_Position: 0
     m_ItemFormatter: 
@@ -13683,13 +13688,18 @@ MonoBehaviour:
     totalSkippedIntervals: 0
   timeCounter: 0
   elapsedMillisec: 0
+  elapsedSec: 0
+  windowSizeSec: 0
   currentIteration: 0
   latestCheckedIteration: 0
+  serieLastIndex: 0
+  clipWindowEdgeSerieIndex: 0
   updatingChart: 1
   useSlidingDataWindow: 0
+  useCustomClipChartMethod: 0
   useSlidingXAxis: 1
   serieMaxCache: 5000
-  serieWindowMaxCache: 500
+  clipWindowMaxCache: 500
 --- !u!1 &1552855869
 GameObject:
   m_ObjectHideFlags: 0

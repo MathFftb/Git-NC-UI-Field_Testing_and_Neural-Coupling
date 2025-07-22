@@ -11,6 +11,7 @@ using NUnit.Framework;
 using UnityEngine.UI;
 using System.Diagnostics.CodeAnalysis;
 using UnityEngine.SceneManagement;
+using System.Globalization;
 
 public class MVCManager : MonoBehaviour
 {
@@ -34,6 +35,14 @@ public class MVCManager : MonoBehaviour
     #endregion
 
     #region"PatientProfile Variables"
+
+    #endregion
+
+    #region "Data Storage Variables"
+    public LabJackObject.LabJackDataPoint[][] MVCMeasurements;
+    public LabJackObject.LabJackDataPoint[] MVC1;
+    public LabJackObject.LabJackDataPoint[] MVC2;
+    public LabJackObject.LabJackDataPoint[] MVC3;
 
     #endregion
 
@@ -116,6 +125,86 @@ public class MVCManager : MonoBehaviour
         LJM.StopRecording();
     }
 
+    public void MVCProtocol()
+    {
+        // Optional: Display Instructions
+        // First MVC measurement
+        // Launch Recording 
+        // Record in Chart
+        // EndRecording
+        // Record LJM dataArray as a MVCMeasurement
+        int expectedMaxSize = (int)Math.Round(LJM.readingFreqHz * LJM.maxTimeReadLoopSec);//Size of the MVCMeasurements arrays
+        int iterationMax = Math.Min(latestCheckedIteration, expectedMaxSize);
+
+        MVCMeasurements = new LabJackObject.LabJackDataPoint[3][];
+        MVCMeasurements[0] = new LabJackObject.LabJackDataPoint[expectedMaxSize];
+
+        for (int i = 0; i < iterationMax; ++i)
+        {
+            MVCMeasurements[0][i] = LJM.dataArray[i]; // DataPoint is a struct so should not be an issue to copy as such
+        }
+
+        // Clean LJM dataArray
+        LJM.CleanLabJackArray();
+
+
+        // Press Next measurement
+        // Or Press ReDo measurement
+        // Or Press Skip Next
+
+        // Second MVC measurement
+        // Switch to measurement 2
+        // Launch Recording 
+        // Record in Chart
+        // EndRecording
+        // Record in dataArray
+
+        expectedMaxSize = (int)Math.Round(LJM.readingFreqHz * LJM.maxTimeReadLoopSec);//Size of the MVCMeasurements arrays
+        iterationMax = Math.Min(latestCheckedIteration, expectedMaxSize);
+
+        for (int i = 0; i < iterationMax; ++i)
+        {
+            MVCMeasurements[1][i] = LJM.dataArray[i]; // DataPoint is a struct so should not be an issue to copy as such
+        }
+
+        // Press Next measurement
+        // Or Press ReDo measurement
+        // Or Press Skip Next
+
+        // Third MVC measurement
+        // Switch to measurement 3
+        // Launch Recording 
+        // Record in Chart
+        // EndRecording
+        // Record in dataArray
+        expectedMaxSize = (int)Math.Round(LJM.readingFreqHz * LJM.maxTimeReadLoopSec);//Size of the MVCMeasurements arrays
+        iterationMax = Math.Min(latestCheckedIteration, expectedMaxSize);
+
+        for (int i = 0; i < iterationMax; ++i)
+        {
+            MVCMeasurements[2][i] = LJM.dataArray[i]; // DataPoint is a struct so should not be an issue to copy as such
+        }
+
+        // Press Visualize MVC
+        // Display 3 measurements at once
+        int numberOfMVCMeasurements = MVCMeasurements.Length;
+        for (int i = 0; i < numberOfMVCMeasurements; ++i)
+        {
+            Serie MVCSerie = chart.series[i];
+            MVCSerie.ClearData();
+            foreach (var datapoint in MVCMeasurements[i])
+            {
+                AddTorqueDataPoint(datapoint, ref MVCSerie);
+            }
+        }
+        // Display formula-calculated MVC
+        // Excise quartiles 
+        // Enter definitive MVC
+
+        // Save MVC Value and 3 MVC measurements to patientA\sessionI folder 
+
+    }
+
     #endregion
 
     #region "DataPoint Methods"
@@ -162,6 +251,33 @@ public class MVCManager : MonoBehaviour
         AddTorqueDataPoint(dataPoint, LJM.startLoopTime);
     }
 
+    // Override version allowing to precise which serie to update
+    public void AddTorqueDataPoint(LabJackObject.LabJackDataPoint dataPoint, in DateTime startTime, ref Serie targetSerie)
+    {
+        // 1. Get the time elapsed since start of reading loop
+        elapsedMillisec = (dataPoint.time - startTime).TotalMilliseconds;
+
+        // 2. Formatting and truncating to seconds
+        elapsedSec = (float)elapsedMillisec / 1000;
+        windowSizeSec = (float)windowSizeMilisec / 1000;
+
+
+        // 3. Add Newly created Datapoint to chart's serie
+        targetSerie.AddData(elapsedSec, dataPoint.AIN0);
+
+        // 4. Sliding X Window Methods
+
+        UpdateXSlidingWindowAllMethods();
+
+        // 5. Sliding Y Window Methods
+        UpdateYSlidingWindow(dataPoint);
+    }
+
+    public void AddTorqueDataPoint(LabJackObject.LabJackDataPoint dataPoint, ref Serie targetSerie)
+    {
+        AddTorqueDataPoint(dataPoint, LJM.startLoopTime, ref targetSerie);
+    }
+
     #endregion
     #region "X Sliding Window Methods"
     public void UpdateXSlidingWindowAllMethods()
@@ -205,14 +321,14 @@ public class MVCManager : MonoBehaviour
         xAxis.min = Math.Round(elapsedSec - windowSizeSec, 2);
     }
 
-    public void UpdateXSlidingWindowCustomClipMethod()
+    public void UpdateXSlidingWindowCustomClipMethod() //Original Clip Boolean seems to work better, this function could be retired
     {
         serieLastIndex = serie.dataCount - 1;
         if (serieLastIndex > clipWindowMaxCache)
         {
             clipWindowEdgeSerieIndex = serieLastIndex - clipWindowMaxCache-1; // -1 added as method is called after adding the latest datapoint
             serie.data[clipWindowEdgeSerieIndex].ignore = true;
-        }
+        }  
     }
 
     #endregion

@@ -45,10 +45,16 @@ public class LabJackObject // Note: All configuration for a model T7, not T4
 
     #region "Data Variables"
     [Serializable]
-    public struct LabJackDataPoint
+    public struct LabJackDataPoint : IComparable<LabJackDataPoint>
     {
         public double AIN0;
         public DateTime time;
+
+        public void SetToZero()
+        {
+            AIN0 = 0;
+            time = default(DateTime);
+        }
 
         public override string ToString()
         {
@@ -63,6 +69,11 @@ public class LabJackObject // Note: All configuration for a model T7, not T4
         {
             return "AIN0";
         }
+
+        public int CompareTo(LabJackDataPoint other)
+        {
+            return this.AIN0.CompareTo(other.AIN0);
+        }
     }
 
     public int dataArrayMaxSize = 100000;
@@ -76,6 +87,7 @@ public class LabJackObject // Note: All configuration for a model T7, not T4
     [Header("Read Loop Variables")]
 
     public int intervalReadingInMicroseconds = 1000000; // Note: Intervals in LabJack are given in Microseconds
+    public double readingFreqHz { get => 1000000 / intervalReadingInMicroseconds; } // Convenience Variable converting IntervalReading from Ms to Hz
     public double maxTimeReadLoopSec = 10; // Note: Time.DeltaTime in Unity is given in Seconds
     public bool timerIsRunning = false;
     public int latestIteration = 0;
@@ -352,7 +364,20 @@ public class LabJackObject // Note: All configuration for a model T7, not T4
     }
     #endregion
 
-    #region 
+    #region "Cleaning Methods"
+    public void CleanLabJackArray(int lastEntry)
+    {
+        lastEntry = Math.Min(lastEntry, dataArray.Length);
+        for (int i = 0; i < lastEntry; ++i)
+            {
+                dataArray[i].SetToZero();
+            }
+    }
+
+    public void CleanLabJackArray()
+    {
+        CleanLabJackArray(dataArray.Length);
+    }
     #endregion
 
     #region 
