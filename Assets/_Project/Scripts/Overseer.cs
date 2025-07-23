@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.IO;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
+using System.Runtime.Remoting.Messaging;
 
 public class Overseer : MonoBehaviour
 {
@@ -37,12 +38,38 @@ public class Overseer : MonoBehaviour
     */
 
     [SerializeField] private PatientProfile patientProfile;
-    
+
     public LabJackObject LJM;
+
+    [SerializeField]
+    public double MVCValue { get; set; }
+
+
+    public static Overseer Instance;
+
+
+    private void Awake()
+    {
+        // Singleton
+        if (Instance != null)
+        {
+            Destroy(gameObject);
+            return;
+        }
+
+        Instance = this;
+        DontDestroyOnLoad(gameObject);
+
+        InitializeFilePathAndName();
+
+        LJM.InitializeAllValues();
+
+        Debug.Log("Called Awake Overseer");
+    }
 
     void Start()
     {
-        
+
     }
 
     // Update is called once per frame
@@ -68,108 +95,84 @@ public class Overseer : MonoBehaviour
         this.patientProfile.CopyFrom(newProfile);
     }
 
-    // Old Code starts here 
-    // The Overseer is the vehicle of information across scenes
-    public static Overseer Instance;
 
+    #region Path Management
+    [Header("Paths")]
+    public string projectPath; // Where the project runs
+    public string dataFolderPath; // Where all data is stored
 
-    private void Awake()
-    {
-        // Singleton
-        if (Instance != null)
-        {
-            Destroy(gameObject);
-            return;
-        }
+    public string patientFolderPath; // Where the current patient's info and sessions are stored
+    public string patientProfileInfoFilePath; // Where the current PatientProfile.json is stored
 
-        Instance = this;
-        DontDestroyOnLoad(gameObject);
+    public string sessionsFolderPath; // Where all the current patient's sessions data is stored
+    public string currentSessionFolderPath; // Where the current session is stored
 
-        InitializeFilePathAndName();
+    public string MVCMeasurementsFolderPath; // Where the 3 MVC Measurements AND the User determined MVC Value are stored
+    public string currentMVCMeasurementFilePath; // Where the current one of the 3 MVC Measurement data is stored
+    public string MVCValueFilePath; // Where the User-Determined MVC Value is stored
 
-        LJM.InitializeAllValues();
+    public string currentTrialFilePath; // Where the current trial data is stored
 
-        LoadBestScore();
-        Debug.Log("Called Awake Overseer");
-    }
+    [Header("File Names")] // What we call the files in the data structure, some are generic others have to be changed during run
+    public string dataFolderName = "Data";
 
-    // Persistence Implementation
+    public string patientFolderName = "Patient ID";
+    public string patientProfileInfoFileName = $"PatientProfileInfo.json";
 
-    // Scene Persistence Implementation
+    public string sessionFolderName = "Sessions";
+    public string currentSessionName = $"Session X";
 
-    
+    public string MVCMeasurementsFolderName = "MVC";
+    public string currentMVCMeasurementFileName = $"MVC Measurement X";
+    public string MVCValueFileName = "MVC Value";
 
-    // Session Persistence Implementation
+    public string currentTrialFileName = $"Trial X";
 
-    /* This BestScore Variable exists separately from the one in the SaveData
-        But they represent the same thing, should I just use SaveData?
-        I think it is safer to use SaveData only in cases of information passation
-        and manipulate the direct BestScore during the run
-    */
-
-    public int BestScore;
-    public string BestPlayer;
-
-    public string Player;
-
-    // SaveData component of Overseer
-    // Contains everything that needs to survive across sessions
-    [SerializeField]
-    class SaveData
-    {
-        //not sure about the private or public declarations in these parts
-        // Internet got me confused and idk if I should set up get and set for BestScore
-        public int BestScore;
-        public string BestPlayer;
-        // for when we will want to add a highscore screen displaying a list of the top scores and players
-        // public (string Player, int Score)[] BestScores;
-    }
-    
-    // Save files' paths and names
-    string saveFileName = "savefile.json";
-    string saveFilePath;
 
     public void InitializeFilePathAndName()
     {
-        saveFilePath = Application.persistentDataPath + "/" + saveFileName;
+        // // Initialize all files and folder names
+        // patientFolderName = "Patient ID";
+        // patientProfileInfoFileName = $"PatientProfileInfo.json";
+
+        // sessionFolderName = "Sessions";
+        // currentSessionName = $"Session X";
+
+        // MVCMeasurementsFolderName = "MVC"; 
+        // currentMVCMeasurementFileName = $"MVC Measurement X";
+        // MVCValueFileName = "MVC Value";
+
+        // currentTrialFileName = $"Trial X";
+
+        UpdateAllPaths();
     }
 
-    public void UpdateBestScore(int newScore)
+    public void UpdateAllPaths()
     {
-        if(newScore>BestScore)
-        {
-            BestScore = newScore;
-            BestPlayer = Player;
-        }
+        // Initialize Root Project Path
+        projectPath = new DirectoryInfo(Application.dataPath).Parent.FullName;   //dataPath is the path to the Assets folder of the project in Unity
+                                                                                 //path is now a string containing the path to the parent Folder of Assets:= the Project Folder
+                                                                                 // Initialize Data Folder's path
+        dataFolderPath = projectPath + "\\" + dataFolderName;
+
+        // Initialize all other paths
+        patientFolderPath = $"{dataFolderPath}\\{patientFolderName}";
+
+        patientProfileInfoFilePath = $"{patientFolderPath}\\{patientProfileInfoFileName}";
+
+        sessionsFolderPath = patientFolderPath + "\\" + sessionFolderName;
+        currentSessionFolderPath = sessionsFolderPath + "\\" + currentSessionName;
+
+        MVCMeasurementsFolderPath = patientFolderPath + "\\" + MVCMeasurementsFolderName;
+        currentMVCMeasurementFilePath = MVCMeasurementsFolderPath + "\\" + currentMVCMeasurementFileName;
+        MVCValueFilePath = MVCMeasurementsFolderPath + "\\" + MVCValueFileName;
+
+        Debug.Log("Paths Updated");
     }
-    
-    public void SaveBestScore()
-    {
-        SaveData recentSave = new SaveData();
-        recentSave.BestScore = BestScore;
-        recentSave.BestPlayer = BestPlayer;
 
-        string jsonFormatedSave = JsonUtility.ToJson(recentSave);
+    #endregion
 
-        File.WriteAllText(saveFilePath , jsonFormatedSave);
-    }
 
-    public void LoadBestScore()
-    {
-        // goes to the supposed existing save file
-        string path = saveFilePath;
-        if (File.Exists(path))
-        {
-            string json = File.ReadAllText(path);
-            SaveData data = JsonUtility.FromJson<SaveData>(json);
 
-            BestScore = data.BestScore;
-            BestPlayer = data.BestPlayer;
-        }
-        // If there is no save the best score is 0
-        else
-        {
-            BestScore = 42;
-        }
-    }
+
 }

@@ -39,10 +39,11 @@ public class MVCManager : MonoBehaviour
     #endregion
 
     #region "Data Storage Variables"
-    public LabJackObject.LabJackDataPoint[][] MVCMeasurements;
+    public LabJackObject.LabJackDataPoint[][] MVCMeasurements; // Stores all the datapoints to be saved at the end of the protocol
     public LabJackObject.LabJackDataPoint[] MVC1;
     public LabJackObject.LabJackDataPoint[] MVC2;
     public LabJackObject.LabJackDataPoint[] MVC3;
+    public double MVCValueFinal;
 
     #endregion
 
@@ -65,6 +66,26 @@ public class MVCManager : MonoBehaviour
 
     #endregion
 
+    #region "MVC User Flow Variables"
+    public int MVCCount = 0; // First measurement is number 0, there are 3 measurements
+    public int maxNumberMVCMeasurements = 3;
+    #endregion
+
+    #region "User Input Variables"
+    public double userInputMaxTimeReadLoopSec = 10;
+    #endregion
+
+    #region "UI Objects"
+    public TMP_Text MeasurementCountDisplay;
+    public TMP_InputField MaxDurationInputField;
+    public TMP_InputField MVCValueInputField;
+    public Button StartMeasurementButton;
+    public Button SkipMeasurementButton;
+    public Button StopReadLoopButton;
+    public Button SaveRecentMVCMeasurement;
+    public Button SaveAllMVCMeasurementsToFile;
+    #endregion
+
     #region "Testing Purpose Variables"
     [Header("Testing Purpose Variables")]
     public bool updatingChart = true;
@@ -75,6 +96,7 @@ public class MVCManager : MonoBehaviour
     public int clipWindowMaxCache = 500;
 
     #endregion
+
 
     #region "Main Methods"
 
@@ -95,7 +117,7 @@ public class MVCManager : MonoBehaviour
         //     serieMaxCache = (int)Math.Round(windowSizeMilisec / 1000 * readingFreq, 0);
         //     serie.maxCache = serieMaxCache;
         // }
-        if (useCustomClipChartMethod)  
+        if (useCustomClipChartMethod)
         {
             //Set serie max cache based on the desired visibility window and the reading frequency
             double readingFreq = 1000000 / LJM.intervalReadingInMicroseconds;
@@ -209,7 +231,9 @@ public class MVCManager : MonoBehaviour
 
     #region "DataPoint Methods"
 
-    // This method loops in Update() and progressively adds the data to the chart's Serie for visualisation
+    /// <summary>
+    /// Loops in Update() and progressively adds the data to the chart's Serie for visualisation
+    /// </summary>
     public void UpdateChartAllMissingDataPoints()
     {
         currentIteration = LJM.latestIteration;
@@ -222,7 +246,11 @@ public class MVCManager : MonoBehaviour
         latestCheckedIteration = currentIteration;
     }
 
-    // Adds a dataPoint to the chart's serie AND updates the axis accordingly
+    /// <summary>
+    /// Adds a dataPoint to the chart's serie AND updates the axis accordingly
+    /// </summary>
+    /// <param name="dataPoint"></param>
+    /// <param name="startTime"></param>
     public void AddTorqueDataPoint(LabJackObject.LabJackDataPoint dataPoint, in DateTime startTime)
     {
         // 1. Get the time elapsed since start of reading loop
@@ -326,9 +354,9 @@ public class MVCManager : MonoBehaviour
         serieLastIndex = serie.dataCount - 1;
         if (serieLastIndex > clipWindowMaxCache)
         {
-            clipWindowEdgeSerieIndex = serieLastIndex - clipWindowMaxCache-1; // -1 added as method is called after adding the latest datapoint
+            clipWindowEdgeSerieIndex = serieLastIndex - clipWindowMaxCache - 1; // -1 added as method is called after adding the latest datapoint
             serie.data[clipWindowEdgeSerieIndex].ignore = true;
-        }  
+        }
     }
 
     #endregion
@@ -378,6 +406,9 @@ public class MVCManager : MonoBehaviour
         chart.ClearData();
     }
 
+    /// <summary>
+    /// Swaps the active Serie Chart Index
+    /// </summary>
     public void SwapSerieTo(int serieIndex)
     {
         serie.show = false;
@@ -387,42 +418,25 @@ public class MVCManager : MonoBehaviour
         serie.maxCache = serieMaxCache;
 
         // Optional: customize serie style
-        serie.lineStyle.width = serieLineWidth; 
+        serie.lineStyle.width = serieLineWidth;
     }
 
-    public void SerieUnIgnoreAllData(ref Serie  serie)
+    public void SerieUnIgnoreAllData(ref Serie serie)
     {
-        int serieSize = serie.dataCount; 
-        for (int i = 0; i<serieSize; ++i)
+        int serieSize = serie.dataCount;
+        for (int i = 0; i < serieSize; ++i)
         {
             serie.data[i].ignore = false;
         }
     }
     public void SerieUnIgnoreAllData()
     {
-        SerieUnIgnoreAllData(ref serie);        
+        SerieUnIgnoreAllData(ref serie);
     }
 
     #endregion
 
     #region "Initialisation Methods"
-    // public void ConnectLabJack()
-    // {
-    //     //Open first found LabJack
-    //     LJM.OpenS("ANY", "ANY", "ANY", ref handle);
-
-    //     // Get and Display Device Info
-    //     LJM.GetHandleInfo(handle, ref devType, ref conType, ref serNum, ref ipAddr, ref port, ref maxBytesPerMB);
-    //     LJM.GetHandleInfo(handle, ref devType, ref conType, ref serNum, ref ipAddr, ref port, ref maxBytesPerMB);
-    //     // Converts numeric IP to a readable string.
-    //     LJM.NumberToIP(ipAddr, ref ipAddrStr);
-
-    //     Debug.Log("Opened a LabJack with Device type: " + devType + ", Connection type: " + conType + ",");
-    //     Debug.Log("  Serial number: " + serNum + ", IP address: " + ipAddrStr + ", Port: " + port + ",");
-    //     Debug.Log("  Max bytes per MB: " + maxBytesPerMB);
-    //     isLabJackConnected = true;
-
-    // }
 
     public void InitializeXChart()
     {
@@ -446,13 +460,24 @@ public class MVCManager : MonoBehaviour
         serie.lineStyle.width = serieLineWidth;  // Default is usually 2 or 3; set to 1 for thin
     }
 
-    public void InitializeSerie()
+    public void InitializeSerie() // Initilizes the active Serie object "serie"
     {
         serie.maxCache = serieMaxCache;
 
         // Optional: customize serie style
         serie.lineStyle.width = serieLineWidth;  // Default is usually 2 or 3; set to 1 for thin
     }
+
+    public void InitializeMVCMeasurements() // Initializes the arrays to be saved at the end
+    {
+        MVCMeasurements = new LabJackObject.LabJackDataPoint[maxNumberMVCMeasurements][];
+    }
+
+    public void InitializeMVCUI()
+    {
+        MaxDurationInputField.text = LJM.maxTimeReadLoopSec.ToString();
+    }
+
     #endregion
 
     #region "Testing Purpose Methods"
@@ -464,6 +489,80 @@ public class MVCManager : MonoBehaviour
     }
 
 
+    #endregion
+
+    #region "MVC Flow Management Method"
+    public void NextMVCMeasurement()
+    {
+        if (MVCCount < maxNumberMVCMeasurements)
+        {
+            // Update MVC Count
+            MVCCount++;
+            // Swap active serie 
+            SwapSerieTo(MVCCount);
+            // Change MVC Count Display
+            MeasurementCountDisplay.text = $"MeasurementCountDisplay #{MVCCount + 1}";
+        }
+    }
+
+    public void SaveCurrentMVC()
+    {
+        int expectedMaxSize = (int)Math.Round(LJM.readingFreqHz * LJM.maxTimeReadLoopSec);//Size of the MVCMeasurements arrays
+        int iterationMax = Math.Min(latestCheckedIteration, expectedMaxSize);
+
+        MVCMeasurements[MVCCount] = new LabJackObject.LabJackDataPoint[expectedMaxSize];
+
+        for (int i = 0; i < iterationMax; ++i)
+        {
+            MVCMeasurements[MVCCount][i] = LJM.dataArray[i]; // DataPoint is a struct so should not be an issue to copy as such
+        }
+    }
+
+    public void SaveMVCToFile()
+    {
+        // Get the User determined MVC Value
+        OnMVCValueUserInputChanged();
+        // Save the MVC Value to the Overseer
+        Overseer.Instance.MVCValue = MVCValueFinal;
+        // Save the MVC Value to the Session Info File as Json
+
+        // Save the MVC Measurements as separate csv files in the session folder
+        // Note: Csv method creates the files if they are not created
+        for (int i = 0; i < MVCMeasurements.Length; ++i)
+        {
+            // Set the path to the savefile
+            Overseer.Instance.currentMVCMeasurementFileName = $"MVCMeasurement{i + 1}.csv";
+            Overseer.Instance.UpdateAllPaths();
+            string filePath = Overseer.Instance.currentMVCMeasurementFilePath;
+            // Save the data in the file
+            CsvConverter.SaveAsCsv(MVCMeasurements[i], dp => dp.ToCsv(), filePath, LabJackObject.LabJackDataPoint.CsvHeader());
+        }
+    }
+
+    #endregion
+
+    #region "User Input Methods"
+    public void OnMaxDurationChanged()
+    {
+        if (MaxDurationInputField.text != "")
+        {
+            userInputMaxTimeReadLoopSec = double.Parse(MaxDurationInputField.text);
+            LJM.maxTimeReadLoopSec = userInputMaxTimeReadLoopSec;
+        }
+    }
+
+    public void OnMVCValueUserInputChanged()
+    {
+        if (MVCValueInputField.text != "")
+        {
+            MVCValueFinal = double.Parse(MVCValueInputField.text);
+            MVCValueInputField.interactable = true;
+        }
+        else
+        {
+            MVCValueInputField.interactable = false;
+        }
+    }
     #endregion
 
 }

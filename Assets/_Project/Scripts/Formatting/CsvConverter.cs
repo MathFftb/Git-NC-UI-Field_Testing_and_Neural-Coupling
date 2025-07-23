@@ -73,6 +73,15 @@ public class CsvConverter : MonoBehaviour
 
 
     // Segment the process to avoid memory issues in Unity when passing by a string
+
+    /// <summary>
+    /// Finds or creates a csv file to save the dataset
+    /// </summary>
+    /// <param name="dataset"></param>
+    /// <param name="toCsvLine">A method defined as "dp=>dp.method()" made to transform each datapoint into a csv formatted line</param>
+    /// <param name="saveFilePath">Full path of the csv File, file name included</param>
+    /// <param name="header"></param>
+    /// <typeparam name="T"></typeparam>
     public static void SaveAsCsv<T>(T[] dataset, Func<T, string> toCsvLine, string saveFilePath, string header = null)
     {
         // Opens the file where the csv si going to be saved, or creates it if it did not exist
