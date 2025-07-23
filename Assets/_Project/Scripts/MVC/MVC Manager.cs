@@ -75,8 +75,8 @@ public class MVCManager : MonoBehaviour
     public double userInputMaxTimeReadLoopSec = 10;
     #endregion
 
-    #region "UI Objects"
-    public TMP_Text MeasurementCountDisplay;
+    #region "UI Elements"
+    public Text MeasurementCountDisplay;
     public TMP_InputField MaxDurationInputField;
     public TMP_InputField MVCValueInputField;
     public Button StartMeasurementButton;
@@ -123,6 +123,8 @@ public class MVCManager : MonoBehaviour
             double readingFreq = 1000000 / LJM.intervalReadingInMicroseconds;
             clipWindowMaxCache = (int)Math.Round(windowSizeMilisec / 1000 * readingFreq, 0);
         }
+
+        InitializeMVCUI();
 
     }
 
