@@ -5,6 +5,7 @@ using System;
 using System.Threading;
 using LabJack;
 using TMPro;
+using UnityEngine.Events;
 
 [Serializable]
 public class LabJackObject // Note: All configuration for a model T7, not T4
@@ -94,6 +95,12 @@ public class LabJackObject // Note: All configuration for a model T7, not T4
     public double timeReadingSec = 0;
     public int skippedIntervals = 0;
     public int totalSkippedIntervals = 0;
+
+    // Unity Events to communicate the start and end of a reading
+    // Important: These cannot be called from the ReadLoop separate Thread
+    // If necessary, it would require a thread dispatcher using enqueue
+    public UnityEvent OnLabJackReadingStart;
+    public UnityEvent OnLabJackReadingEnd;
 
 
     // Additional thread to run the read loop separately
@@ -246,6 +253,9 @@ public class LabJackObject // Note: All configuration for a model T7, not T4
             readThread = new Thread(ReadLoop);
             readThread.IsBackground = true;
             readThread.Start();
+
+            // Unity Event
+            OnLabJackReadingStart.Invoke();
         }
     }
 
@@ -355,11 +365,23 @@ public class LabJackObject // Note: All configuration for a model T7, not T4
         {
             Debug.Log("Stopping stream...");
             isRunning = false;
+
+            // Unity event and Thread managing
+            Debug.Log($"Stopping stream on thread: {Thread.CurrentThread.ManagedThreadId}");
+            // Schedule safe callback on main thread
+            MainThreadDispatcher.Enqueue(() =>
+            {
+                Debug.Log($"Now on main thread: {Thread.CurrentThread.ManagedThreadId}");
+                OnLabJackReadingEnd.Invoke(); // Safe here
+            });
+
+            // Stopping the Thread
             // Wait for the thread to terminate
             if (readThread != null && readThread.IsAlive)
             {
                 readThread.Join();
             }
+          
         }
     }
     #endregion

@@ -172,6 +172,18 @@ public class Overseer : MonoBehaviour
 
     #endregion
 
+    #region LabJack Management
+    public void ConnectLabJack()
+    {
+        LJM.ConnectLabJack();
+    }
+    
+    public void DisConnectLabJack()
+    {
+        LJM.DisconnectLabJack();
+    }
+    #endregion
+
 
 
 

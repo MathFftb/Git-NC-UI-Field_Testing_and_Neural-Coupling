@@ -64,6 +64,8 @@ public class MVCManager : MonoBehaviour
     public int serieLastIndex = 0;
     public int clipWindowEdgeSerieIndex = 0;
 
+    public bool isReading = false;
+
     #endregion
 
     #region "MVC User Flow Variables"
@@ -76,18 +78,27 @@ public class MVCManager : MonoBehaviour
     #endregion
 
     #region "UI Elements"
+    [Header("UI Elements")]
     public Text MeasurementCountDisplay;
     public TMP_InputField MaxDurationInputField;
-    public TMP_InputField MVCValueInputField;
     public Button StartMeasurementButton;
     public Button SkipMeasurementButton;
+
+    public Image MVCInstructions;
+    public bool displayInstructions = true; // Instructions should not have to be displayed every time
+    public Image GoStopDisplay;
     public Button StopReadLoopButton;
-    public Button SaveRecentMVCMeasurement;
+
+    public Button SaveRecentMVCMeasurementButton;
+    public Button RedoRecentMVCMeasurementButton;
+
+    public TMP_InputField MVCValueInputField;
     public Button SaveAllMVCMeasurementsToFile;
     #endregion
 
     #region "Testing Purpose Variables"
     [Header("Testing Purpose Variables")]
+    public bool testing = false;
     public bool updatingChart = true;
     public bool useSlidingDataWindow = true;
     public bool useCustomClipChartMethod = true;
@@ -125,6 +136,9 @@ public class MVCManager : MonoBehaviour
         }
 
         InitializeMVCUI();
+
+        LJM.OnLabJackReadingStart.AddListener(ActivateReadingModeUI);
+        LJM.OnLabJackReadingEnd.AddListener(DeactivateReadingModeUI);
 
     }
 
@@ -223,7 +237,7 @@ public class MVCManager : MonoBehaviour
         }
         // Display formula-calculated MVC
         // Excise quartiles 
-        // Enter definitive MVC
+        // Enter final MVC value
 
         // Save MVC Value and 3 MVC measurements to patientA\sessionI folder 
 
@@ -475,10 +489,7 @@ public class MVCManager : MonoBehaviour
         MVCMeasurements = new LabJackObject.LabJackDataPoint[maxNumberMVCMeasurements][];
     }
 
-    public void InitializeMVCUI()
-    {
-        MaxDurationInputField.text = LJM.maxTimeReadLoopSec.ToString();
-    }
+
 
     #endregion
 
@@ -565,6 +576,41 @@ public class MVCManager : MonoBehaviour
             MVCValueInputField.interactable = false;
         }
     }
+    #endregion
+
+    #region "UI Methods"
+    public void InitializeMVCUI()
+    {
+        if (!testing) MaxDurationInputField.text = LJM.maxTimeReadLoopSec.ToString();
+    }
+
+    public void ActivateReadingModeUI()
+    {
+        isReading = true;
+        UpdateReadingModeUI();
+    }
+
+    public void DeactivateReadingModeUI()
+    {
+        Debug.Log("Caught End event");
+        isReading = false;
+        UpdateReadingModeUI();
+        Debug.Log($"DeactivateReadingModeUI() running on thread: {System.Threading.Thread.CurrentThread.ManagedThreadId}");
+    }
+
+    public void UpdateReadingModeUI()
+    {
+        MaxDurationInputField.interactable = !isReading;
+        StartMeasurementButton.interactable = !isReading;
+        SkipMeasurementButton.interactable = !isReading;
+
+        StopReadLoopButton.interactable = isReading;
+        GoStopDisplay.enabled = isReading;
+
+        SaveRecentMVCMeasurementButton.interactable = !isReading;
+        RedoRecentMVCMeasurementButton.interactable = !isReading;
+    }
+
     #endregion
 
 }
