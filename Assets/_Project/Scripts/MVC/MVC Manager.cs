@@ -12,6 +12,9 @@ using UnityEngine.UI;
 using System.Diagnostics.CodeAnalysis;
 using UnityEngine.SceneManagement;
 using System.Globalization;
+using System.Collections;
+using System.Data;
+using System.Linq;
 
 public class MVCManager : MonoBehaviour
 {
@@ -79,6 +82,10 @@ public class MVCManager : MonoBehaviour
 
     #region "UI Elements"
     [Header("UI Elements")]
+    public AltOpenCloseWindow FirstWindow;
+    public AltOpenCloseWindow MeasurementWindow;
+    public AltOpenCloseWindow lastMeasurementEndWindow;
+
     public Text MeasurementCountDisplay;
     public TMP_InputField MaxDurationInputField;
     public Button StartMeasurementButton;
@@ -86,7 +93,7 @@ public class MVCManager : MonoBehaviour
 
     public Image MVCInstructions;
     public bool displayInstructions = true; // Instructions should not have to be displayed every time
-    public Image GoStopDisplay;
+    public Button GoStopDisplay;
     public Button StopReadLoopButton;
 
     public Button SaveRecentMVCMeasurementButton;
@@ -94,6 +101,7 @@ public class MVCManager : MonoBehaviour
 
     public TMP_InputField MVCValueInputField;
     public Button SaveAllMVCMeasurementsToFile;
+
     #endregion
 
     #region "Testing Purpose Variables"
@@ -137,8 +145,10 @@ public class MVCManager : MonoBehaviour
 
         InitializeMVCUI();
 
-        LJM.OnLabJackReadingStart.AddListener(ActivateReadingModeUI);
-        LJM.OnLabJackReadingEnd.AddListener(DeactivateReadingModeUI);
+        LJM.OnLabJackReadingStart.AddListener(OnReadingStart);
+        LJM.OnLabJackReadingEnd.AddListener(OnReadingEnd);
+
+        InitializeMVCMeasurements();
 
     }
 
@@ -153,9 +163,29 @@ public class MVCManager : MonoBehaviour
         }
     }
 
-    public void StartMVCMeasurement()
+    public IEnumerator StartMVCMeasurement()
     {
+        // Warning: IEnumerator cannot be called from buttons
+        yield return StartMVCMeasurementUIAnimation();
         LJM.StartRecording();
+    }
+
+    public void OnClickStartMVCMeasurement()
+    {
+        StartCoroutine(StartMVCMeasurement());
+    }
+
+    public IEnumerator StartMVCMeasurementUIAnimation()
+    {
+        // Display a countdown before starting the MVC Measurement
+        GoStopDisplay.gameObject.SetActive(true);
+        GoStopDisplay.GetComponentInChildren<TMP_Text>().text = "3";
+        yield return new WaitForSeconds(1);
+        GoStopDisplay.GetComponentInChildren<TMP_Text>().text = "2";
+        yield return new WaitForSeconds(1);
+        GoStopDisplay.GetComponentInChildren<TMP_Text>().text = "1";
+        yield return new WaitForSeconds(1);
+        GoStopDisplay.GetComponentInChildren<TMP_Text>().text = "GO!";
     }
 
     public void StopMVCMeasurement()
@@ -267,7 +297,7 @@ public class MVCManager : MonoBehaviour
     /// </summary>
     /// <param name="dataPoint"></param>
     /// <param name="startTime"></param>
-    public void AddTorqueDataPoint(LabJackObject.LabJackDataPoint dataPoint, in DateTime startTime)
+    public void AddTorqueDataPoint(LabJackObject.LabJackDataPoint dataPoint, in DateTime startTime, bool slidingXWindow = true, bool slidingYWindow = true)
     {
         // 1. Get the time elapsed since start of reading loop
         elapsedMillisec = (dataPoint.time - startTime).TotalMilliseconds;
@@ -282,10 +312,12 @@ public class MVCManager : MonoBehaviour
 
         // 4. Sliding X Window Methods
 
-        UpdateXSlidingWindowAllMethods();
+        if (slidingXWindow)
+            UpdateXSlidingWindowAllMethods();
 
         // 5. Sliding Y Window Methods
-        UpdateYSlidingWindow(dataPoint);
+        if (slidingYWindow)
+            UpdateYSlidingWindow(dataPoint);
 
     }
 
@@ -365,7 +397,7 @@ public class MVCManager : MonoBehaviour
         xAxis.min = Math.Round(elapsedSec - windowSizeSec, 2);
     }
 
-    public void UpdateXSlidingWindowCustomClipMethod() //Original Clip Boolean seems to work better, this function could be retired
+    public void UpdateXSlidingWindowCustomClipMethod() //Original Xcharts Clip option (Boolean) seems to work better, this function could be retired
     {
         serieLastIndex = serie.dataCount - 1;
         if (serieLastIndex > clipWindowMaxCache)
@@ -428,6 +460,14 @@ public class MVCManager : MonoBehaviour
     public void SwapSerieTo(int serieIndex)
     {
         serie.show = false;
+
+        // Make sure the serie exists
+        while (chart.series.Count <= serieIndex)
+        {
+            chart.AddSerie<Line>($"MVC{MVCCount + 1}");
+        }
+
+        // Swap active serie
         serie = chart.GetSerie(serieIndex);
         serie.show = true;
 
@@ -435,6 +475,8 @@ public class MVCManager : MonoBehaviour
 
         // Optional: customize serie style
         serie.lineStyle.width = serieLineWidth;
+        serie.clip = true;
+        serie.symbol.show = false;
     }
 
     public void SerieUnIgnoreAllData(ref Serie serie)
@@ -474,6 +516,7 @@ public class MVCManager : MonoBehaviour
 
         // Optional: customize serie style
         serie.lineStyle.width = serieLineWidth;  // Default is usually 2 or 3; set to 1 for thin
+        serie.symbol.show = false;
     }
 
     public void InitializeSerie() // Initilizes the active Serie object "serie"
@@ -482,6 +525,7 @@ public class MVCManager : MonoBehaviour
 
         // Optional: customize serie style
         serie.lineStyle.width = serieLineWidth;  // Default is usually 2 or 3; set to 1 for thin
+        serie.symbol.show = false;
     }
 
     public void InitializeMVCMeasurements() // Initializes the arrays to be saved at the end
@@ -507,14 +551,20 @@ public class MVCManager : MonoBehaviour
     #region "MVC Flow Management Method"
     public void NextMVCMeasurement()
     {
-        if (MVCCount < maxNumberMVCMeasurements)
+        if (MVCCount < maxNumberMVCMeasurements - 1)
         {
             // Update MVC Count
             MVCCount++;
             // Swap active serie 
             SwapSerieTo(MVCCount);
+            // Update UI interactability
+            OnPrepareReadLoopUI();
             // Change MVC Count Display
-            MeasurementCountDisplay.text = $"MeasurementCountDisplay #{MVCCount + 1}";
+            UpdateMeasurementCountDisplay();
+        }
+        else
+        {
+            OnLastMeasurementEnd();
         }
     }
 
@@ -552,6 +602,20 @@ public class MVCManager : MonoBehaviour
         }
     }
 
+    public void ReDoLastMVCMeasurement()
+    {
+        // // Do Not Update MVC Count
+        // MVCCount = MVCCount;
+        // // Swap active serie 
+        // SwapSerieTo(MVCCount);
+        // // Change MVC Count Display
+        // UpdateMeasurementCountDisplay();
+
+        // Clear current serie
+        serie.ClearData();
+
+    }
+
     #endregion
 
     #region "User Input Methods"
@@ -569,11 +633,11 @@ public class MVCManager : MonoBehaviour
         if (MVCValueInputField.text != "")
         {
             MVCValueFinal = double.Parse(MVCValueInputField.text);
-            MVCValueInputField.interactable = true;
+            SaveAllMVCMeasurementsToFile.interactable = true;
         }
         else
         {
-            MVCValueInputField.interactable = false;
+            SaveAllMVCMeasurementsToFile.interactable = false;
         }
     }
     #endregion
@@ -582,6 +646,16 @@ public class MVCManager : MonoBehaviour
     public void InitializeMVCUI()
     {
         if (!testing) MaxDurationInputField.text = LJM.maxTimeReadLoopSec.ToString();
+
+        // Initialize Windows Canvas
+        FirstWindow.OpenWindow();
+        // MeasurementWindow.CloseWindow();
+        // lastMeasurementEndWindow.CloseWindow();
+
+        // Initialize measurement count display
+        UpdateMeasurementCountDisplay();
+
+
     }
 
     public void ActivateReadingModeUI()
@@ -605,11 +679,281 @@ public class MVCManager : MonoBehaviour
         SkipMeasurementButton.interactable = !isReading;
 
         StopReadLoopButton.interactable = isReading;
-        GoStopDisplay.enabled = isReading;
+        GoStopDisplay.gameObject.SetActive(isReading);
 
         SaveRecentMVCMeasurementButton.interactable = !isReading;
         RedoRecentMVCMeasurementButton.interactable = !isReading;
     }
+
+    public void OnPrepareReadLoopUI()
+    {
+        // Update UI Elements interactibility
+
+        MeasurementCountDisplay.enabled = true;
+        MaxDurationInputField.interactable = true;
+        StartMeasurementButton.interactable = true;
+        SkipMeasurementButton.interactable = false;
+
+        MVCInstructions.gameObject.SetActive(false);
+        displayInstructions = false; // Instructions should not have to be displayed every time
+        GoStopDisplay.gameObject.SetActive(true);
+        // GoStopDisplay.Text = "GO!";
+        StopReadLoopButton.interactable = false;
+
+        SaveRecentMVCMeasurementButton.interactable = false;
+        RedoRecentMVCMeasurementButton.interactable = false;
+
+        MVCValueInputField.interactable = false;
+        SaveAllMVCMeasurementsToFile.interactable = false;
+    }
+
+    public void OnReadingStart()
+    {
+        // Update UI Elements interactibility
+
+        MeasurementCountDisplay.enabled = true;
+        MaxDurationInputField.interactable = false;
+        StartMeasurementButton.interactable = false;
+        SkipMeasurementButton.interactable = false;
+
+        MVCInstructions.gameObject.SetActive(false);
+        displayInstructions = false; // Instructions should not have to be displayed every time
+        GoStopDisplay.gameObject.SetActive(true);
+        // GoStopDisplay.Text = "GO!";
+        StopReadLoopButton.interactable = true;
+
+        SaveRecentMVCMeasurementButton.interactable = false;
+        RedoRecentMVCMeasurementButton.interactable = false;
+
+        MVCValueInputField.interactable = false;
+        SaveAllMVCMeasurementsToFile.interactable = false;
+    }
+
+    public void OnReadingEnd()
+    {
+        Debug.Log("Caught End event");
+        isReading = false;
+        // Update UI Elements interactibility
+
+        MeasurementCountDisplay.enabled = true;
+        MaxDurationInputField.interactable = false;
+        StartMeasurementButton.interactable = false;
+        SkipMeasurementButton.interactable = false;
+
+        MVCInstructions.gameObject.SetActive(false);
+        displayInstructions = false; // Instructions should not have to be displayed every time
+        GoStopDisplay.gameObject.SetActive(true);
+        GoStopDisplay.GetComponentInChildren<TMP_Text>().text = "Relax";
+        StopReadLoopButton.interactable = false;
+
+        SaveRecentMVCMeasurementButton.interactable = true;
+        RedoRecentMVCMeasurementButton.interactable = true;
+
+        MVCValueInputField.interactable = false;
+        SaveAllMVCMeasurementsToFile.interactable = false;
+
+        Debug.Log($"DeactivateReadingModeUI() running on thread: {System.Threading.Thread.CurrentThread.ManagedThreadId}");
+
+    }
+
+    public void OnLastMeasurementEnd()
+    {
+        // Update UI Elements interactibility
+
+        MeasurementCountDisplay.enabled = true;
+        MaxDurationInputField.interactable = false;
+        StartMeasurementButton.interactable = false;
+        SkipMeasurementButton.interactable = false;
+
+        MVCInstructions.gameObject.SetActive(false);
+        displayInstructions = false; // Instructions should not have to be displayed every time
+        GoStopDisplay.gameObject.SetActive(false);
+        // GoStopDisplay.Text = "GO!";
+        StopReadLoopButton.interactable = false;
+
+        SaveRecentMVCMeasurementButton.interactable = false;
+        RedoRecentMVCMeasurementButton.interactable = false;
+
+        // Make sure the final window is open
+        lastMeasurementEndWindow.OpenWindow();
+        MVCValueInputField.enabled = true;
+        SaveAllMVCMeasurementsToFile.enabled = true;
+        MVCValueInputField.interactable = true;
+        SaveAllMVCMeasurementsToFile.interactable = false; // becomes interactable when MVC has been selected
+
+        // Display all data from the MVCMeasurements arrays []
+        double maxDuration = 0;
+        for (int i = 0; i < MVCCount; ++i)
+        {
+            if (chart.series.Count > MVCCount && MVCMeasurements[i].Length > 0)
+            {
+                serie = chart.GetSerie(i);
+                serie.ClearData(); // Clear data just in case, we assume any modification could have happened to the original serie
+                serie.maxCache = MVCMeasurements[i].Length;
+
+                // Style option of the serie 
+                serie.lineStyle.width = serieLineWidth;  // Default is usually 2 or 3; set to 1 for thin
+                serie.symbol.show = false;
+                serie.show = true;
+
+                // Get MVC Measurement start 
+                DateTime readStartTime = MVCMeasurements[i][0].time;
+                // Get MVC Duration in seconds
+                double durationSec = (float)(MVCMeasurements[i][^1].time - MVCMeasurements[i][0].time).TotalMilliseconds / 1000;
+
+                foreach (var datapoint in MVCMeasurements[i])
+                {
+                    AddTorqueDataPoint(datapoint, readStartTime, slidingXWindow: false, slidingYWindow: true);
+                }
+
+                // Adjust the X axis to show all data
+                if (durationSec > maxDuration)
+                {
+                    if (AppSettings.DebugMode) Debug.Log($"New Max Duration set: {maxDuration}");
+                    maxDuration = durationSec;
+                    var xAxis = chart.GetChartComponent<XAxis>();
+                    // Axis type has to be custon to directly modify the min and max values
+                    xAxis.minMaxType = Axis.AxisMinMaxType.Custom;
+                    xAxis.max = Math.Round(maxDuration, 2);
+                    xAxis.min = Math.Round(-0.5, 2);
+                }
+
+            }
+        }
+    }
+
+    public void UpdateMeasurementCountDisplay()
+    {
+        MeasurementCountDisplay.text = $"Measurement #{MVCCount + 1}";
+    }
+
+    #endregion
+
+    #region "Calculating MVC"
+
+    struct MVCCandidate
+    {
+        public LabJackObject.LabJackDataPoint datapoint;
+        public bool isMax;
+        public bool isMin;
+        public MVCCandidate(LabJackObject.LabJackDataPoint dp, bool max = false, bool min = false)
+        {
+            datapoint = dp;
+            isMax = max;
+            isMin = min;
+        }
+    }
+    public double GetMVC(LabJackObject.LabJackDataPoint[] dataset)
+    {
+        double finalMVC = 0;
+        double _windowWidthInSec = 10;
+        int _windowWidthInDatapoints = (int)Math.Round(LJM.readingFreqHz * _windowWidthInSec);
+
+        var maxInWindow = new LabJackObject.LabJackDataPoint();
+        var minInWindow = new LabJackObject.LabJackDataPoint();
+        var comparedValue = new LabJackObject.LabJackDataPoint();
+
+        Queue<MVCCandidate> timeWindow = new Queue<MVCCandidate>();
+        // Initialize Window
+        for (int i = 0; i < _windowWidthInDatapoints; ++i)
+        {
+            // Update max or min in window
+            comparedValue = dataset[i];
+            if (comparedValue.CompareTo(maxInWindow) > 0)
+            {
+                timeWindow.Enqueue(new MVCCandidate(dataset[i], max: true, min: false));
+                maxInWindow = comparedValue;
+            }
+            else if (comparedValue.CompareTo(minInWindow) < 0)
+            {
+                timeWindow.Enqueue(new MVCCandidate(dataset[i], max: false, min: true));
+                minInWindow = comparedValue;
+            }
+            else
+            {
+                timeWindow.Enqueue(new MVCCandidate(dataset[i], max: false, min: false));
+            }
+        }
+
+        double  maxMVCYet = 0;
+        double comparedMVC;
+        double variationMinMax = 0;
+        double maxVariationTolerance = 2;
+        bool usingAverage = true;
+        bool usingMaxValue = true;
+
+
+
+        // Loop over the rest of the dataset
+        for (int i = _windowWidthInDatapoints; i < dataset.Length; ++i)
+        {
+            // Check if the window is stable
+            if (maxInWindow.AIN0 - minInWindow.AIN0 < maxVariationTolerance)
+            {
+                // Check if MVC needs to be updated
+                if (usingAverage)
+                {
+                    // Check if the average of the window is higher than previous MVC registered
+                    comparedMVC = timeWindow.
+                                OfType<LabJackObject.LabJackDataPoint>().
+                                    Average(datapoint => datapoint.AIN0);
+                    if (comparedMVC > maxMVCYet)
+                    {
+                        maxMVCYet = comparedMVC;
+                    }
+                }
+                else if (usingMaxValue)
+                {
+                    // Check if the max value in the window is higher than previous MVC registered
+                    comparedMVC = maxInWindow.AIN0;
+                    if (comparedMVC > maxMVCYet)
+                    {
+                        maxMVCYet = comparedMVC;
+                    }
+                }
+            }
+            // Enqueue
+            // Update max or min in window
+            comparedValue = dataset[i];
+            if (comparedValue.CompareTo(maxInWindow) > 0)
+            {
+                timeWindow.Enqueue(new MVCCandidate(dataset[i], max: true, min: false));
+                maxInWindow = comparedValue;
+            }
+            else if (comparedValue.CompareTo(minInWindow) < 0)
+            {
+                timeWindow.Enqueue(new MVCCandidate(dataset[i], max: false, min: true));
+                minInWindow = comparedValue;
+            }
+            else
+            {
+                timeWindow.Enqueue(new MVCCandidate(dataset[i], max: false, min: false));
+            }
+
+            // Dequeue
+            var leavingCandidate = (MVCCandidate)timeWindow.Dequeue();
+            // Examine the leaving value and act in accordance
+
+            if (leavingCandidate.isMax)
+            {
+                // Find the new max
+                // var thing = timeWindow.Max(candidate => candidate.datapoint).isMax = true;
+                
+            }
+            else if (leavingCandidate.isMin)
+            {
+                // Find the new min
+
+            }
+        }
+
+
+
+
+        return finalMVC;
+    }
+
+
 
     #endregion
 
