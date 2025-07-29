@@ -15,6 +15,7 @@ using System.Globalization;
 using System.Collections;
 using System.Data;
 using System.Linq;
+using UnityEditor.Search;
 
 public class MVCManager : MonoBehaviour
 {
@@ -504,6 +505,9 @@ public class MVCManager : MonoBehaviour
         // Initialize and clear serie data
         chart.ClearData();
 
+        // Initialize and Clear Pre-existing Makline objects
+        chart.RemoveChartComponents<MarkLine>();
+
         // Optional: Add named serie
         //chart.AddSerie<Line>("Torque");
 
@@ -843,7 +847,7 @@ public class MVCManager : MonoBehaviour
             isMin = min;
         }
     }
-    
+
     public double GetMVCUsingIndexing(LabJackObject.LabJackDataPoint[] dataset)
     {
         double finalMVC = 0;
@@ -854,7 +858,7 @@ public class MVCManager : MonoBehaviour
         // Initialize Window
         window.start = 0;
         window.stop = _windowWidthInDatapoints;
-        
+
         var comparedValue = new LabJackObject.LabJackDataPoint();
         (LabJackObject.LabJackDataPoint datapoint, int index) maxInWindow = (new LabJackObject.LabJackDataPoint(), 0);
         (LabJackObject.LabJackDataPoint datapoint, int index) minInWindow = (new LabJackObject.LabJackDataPoint(), 0);
@@ -882,7 +886,7 @@ public class MVCManager : MonoBehaviour
         // Loop over the rest of the dataset 
         for (int i = _windowWidthInDatapoints; i < dataset.Length; ++i)
         {
-            
+
 
             // Update the Window
             window.start = i - _windowWidthInDatapoints;
@@ -927,12 +931,12 @@ public class MVCManager : MonoBehaviour
                 // Update minInWindow
                 minInWindow = (dataset[window.stop], window.stop);
             }
-            
+
 
             // Check if the window is eligible for MVC
             if (maxInWindow.datapoint.AIN0 - minInWindow.datapoint.AIN0 < stabilityTolerance)
             {
-                // Register the current MVC
+                // Clculate the current MVC
                 comparedMVC = maxInWindow.datapoint.AIN0;
                 // Chek if the new MVC is higher than maxMVCyet 
                 if (comparedMVC > maxMVCYet)
@@ -942,8 +946,81 @@ public class MVCManager : MonoBehaviour
                 }
             }
         }
-        finalMVC = maxMVCYet; 
+        finalMVC = maxMVCYet;
         return finalMVC;
+    }
+
+    public List<MarkLine> markLineList = new List<MarkLine>();
+
+    public void DrawMVCLine()
+    {
+
+        //HeyMark = new MarkLine { show = true, serieIndex = serie.index };
+        chart.RemoveChartComponents<MarkLine>();
+
+        MarkLine HeyMark = chart.AddChartComponent<MarkLine>();
+        markLineList.Add(chart.AddChartComponent<MarkLine>());
+        markLineList[serie.index].serieIndex = serie.index;
+        markLineList[serie.index].show = true;
+
+        // Configure a single horizontal line at y = MVC
+        markLineList[serie.index].data = new List<MarkLineData>
+        {
+            new MarkLineData
+            {
+                xPosition= 0,
+                xValue = 0,
+                yPosition = 0,
+                yValue = 5,         // the Y height
+                label = new LabelStyle
+                {
+                    show = true,
+                    formatter = $"MVC{serie.index + 1}"
+                },
+                lineStyle = new LineStyle
+                {
+                    color = serie.lineStyle.color,
+                    width = 0,
+                    type = LineStyle.Type.Dashed
+                }
+            }
+        };
+
+
+        // // Testing
+        // SaveCurrentMVC();
+
+        // // Real
+        // double MVCValue = GetMVCUsingIndexing(MVCMeasurements[MVCCount]);
+        // MarkLine markLine = new MarkLine { show = true, serieIndex = serie.index }; 
+
+        // // Configure a single horizontal line at y = MVC
+        // markLine.data = new List<MarkLineData>
+        // {
+        //     new MarkLineData
+        //     {
+        //         xPosition= 0,
+        //         xValue = 0,
+        //         yPosition = 0,
+        //         yValue = (float)MVCValue,         // the Y height
+        //         label = new LabelStyle
+        //         {
+        //             show = true,
+        //             formatter = $"MVC{serie.index + 1}"
+        //         },
+        //         lineStyle = new LineStyle
+        //         {
+        //             color = serie.lineStyle.color,
+        //             width = 0,
+        //             type = LineStyle.Type.Dashed
+        //         }
+        //     }
+        // };
+
+        // // chart.GetComponent<MarkLine>();
+        // // chart.EnsureChartComponent<MarkLine>();
+
+        // if (AppSettings.DebugMode) Debug.Log("Markline drawn");
     }
 
     // public double GetMVCUsingQueue(LabJackObject.LabJackDataPoint[] dataset)
