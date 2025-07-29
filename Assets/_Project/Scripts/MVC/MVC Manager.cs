@@ -843,115 +843,229 @@ public class MVCManager : MonoBehaviour
             isMin = min;
         }
     }
-    public double GetMVC(LabJackObject.LabJackDataPoint[] dataset)
+    
+    public double GetMVCUsingIndexing(LabJackObject.LabJackDataPoint[] dataset)
     {
         double finalMVC = 0;
         double _windowWidthInSec = 10;
         int _windowWidthInDatapoints = (int)Math.Round(LJM.readingFreqHz * _windowWidthInSec);
 
-        var maxInWindow = new LabJackObject.LabJackDataPoint();
-        var minInWindow = new LabJackObject.LabJackDataPoint();
-        var comparedValue = new LabJackObject.LabJackDataPoint();
-
-        Queue<MVCCandidate> timeWindow = new Queue<MVCCandidate>();
+        (int start, int stop) window;
         // Initialize Window
-        for (int i = 0; i < _windowWidthInDatapoints; ++i)
+        window.start = 0;
+        window.stop = _windowWidthInDatapoints;
+        
+        var comparedValue = new LabJackObject.LabJackDataPoint();
+        (LabJackObject.LabJackDataPoint datapoint, int index) maxInWindow = (new LabJackObject.LabJackDataPoint(), 0);
+        (LabJackObject.LabJackDataPoint datapoint, int index) minInWindow = (new LabJackObject.LabJackDataPoint(), 0);
+        for (int i = window.start; i < window.stop; ++i)
         {
-            // Update max or min in window
             comparedValue = dataset[i];
-            if (comparedValue.CompareTo(maxInWindow) > 0)
+            // Define max value
+            if (dataset[i].CompareTo(maxInWindow.datapoint) > 0)
             {
-                timeWindow.Enqueue(new MVCCandidate(dataset[i], max: true, min: false));
-                maxInWindow = comparedValue;
+                maxInWindow = (comparedValue, index: i);
             }
-            else if (comparedValue.CompareTo(minInWindow) < 0)
+            // Define min value
+            else if (dataset[i].CompareTo(minInWindow.datapoint) < 0)
             {
-                timeWindow.Enqueue(new MVCCandidate(dataset[i], max: false, min: true));
-                minInWindow = comparedValue;
-            }
-            else
-            {
-                timeWindow.Enqueue(new MVCCandidate(dataset[i], max: false, min: false));
+                minInWindow = (comparedValue, index: i);
             }
         }
 
-        double  maxMVCYet = 0;
+        double stabilityTolerance = 2;
+        // Does not need indexing here
         double comparedMVC;
-        double variationMinMax = 0;
-        double maxVariationTolerance = 2;
-        bool usingAverage = true;
-        bool usingMaxValue = true;
+        double maxMVCYet = 0;
 
 
-
-        // Loop over the rest of the dataset
+        // Loop over the rest of the dataset 
         for (int i = _windowWidthInDatapoints; i < dataset.Length; ++i)
         {
-            // Check if the window is stable
-            if (maxInWindow.AIN0 - minInWindow.AIN0 < maxVariationTolerance)
+            
+
+            // Update the Window
+            window.start = i - _windowWidthInDatapoints;
+            window.stop = i;
+
+            // Check if disappearing part of the window means we need an update
+            // If maxInWindow is out of the window
+            if (maxInWindow.index < window.start)
             {
-                // Check if MVC needs to be updated
-                if (usingAverage)
+                // Get the new max
+                for (int j = window.start; j < window.stop; i++)
                 {
-                    // Check if the average of the window is higher than previous MVC registered
-                    comparedMVC = timeWindow.
-                                OfType<LabJackObject.LabJackDataPoint>().
-                                    Average(datapoint => datapoint.AIN0);
-                    if (comparedMVC > maxMVCYet)
+                    if (dataset[j].CompareTo(maxInWindow.datapoint) > 0)
                     {
-                        maxMVCYet = comparedMVC;
-                    }
-                }
-                else if (usingMaxValue)
-                {
-                    // Check if the max value in the window is higher than previous MVC registered
-                    comparedMVC = maxInWindow.AIN0;
-                    if (comparedMVC > maxMVCYet)
-                    {
-                        maxMVCYet = comparedMVC;
+                        maxInWindow = (dataset[j], index: j);
                     }
                 }
             }
-            // Enqueue
-            // Update max or min in window
-            comparedValue = dataset[i];
-            if (comparedValue.CompareTo(maxInWindow) > 0)
+            // If minInWindow is out of the window
+            else if (minInWindow.index < window.start)
             {
-                timeWindow.Enqueue(new MVCCandidate(dataset[i], max: true, min: false));
-                maxInWindow = comparedValue;
-            }
-            else if (comparedValue.CompareTo(minInWindow) < 0)
-            {
-                timeWindow.Enqueue(new MVCCandidate(dataset[i], max: false, min: true));
-                minInWindow = comparedValue;
-            }
-            else
-            {
-                timeWindow.Enqueue(new MVCCandidate(dataset[i], max: false, min: false));
+                // Get the new min
+                for (int j = window.start; j < window.stop; i++)
+                {
+                    if (dataset[j].CompareTo(minInWindow.datapoint) < 0)
+                    {
+                        minInWindow = (dataset[j], index: j);
+                    }
+                }
             }
 
-            // Dequeue
-            var leavingCandidate = (MVCCandidate)timeWindow.Dequeue();
-            // Examine the leaving value and act in accordance
-
-            if (leavingCandidate.isMax)
+            // Check if the new datapoints entering the window are the new min or max
+            // Check if there is a new max 
+            if (dataset[window.stop].CompareTo(maxInWindow.datapoint) > 0)
             {
-                // Find the new max
-                // var thing = timeWindow.Max(candidate => candidate.datapoint).isMax = true;
-                
+                // Update maxInWindow
+                maxInWindow = (dataset[window.stop], window.stop);
             }
-            else if (leavingCandidate.isMin)
+            // Check if there is a new minif
+            else if (dataset[window.stop].CompareTo(minInWindow.datapoint) < 0)
             {
-                // Find the new min
+                // Update minInWindow
+                minInWindow = (dataset[window.stop], window.stop);
+            }
+            
 
+            // Check if the window is eligible for MVC
+            if (maxInWindow.datapoint.AIN0 - minInWindow.datapoint.AIN0 < stabilityTolerance)
+            {
+                // Register the current MVC
+                comparedMVC = maxInWindow.datapoint.AIN0;
+                // Chek if the new MVC is higher than maxMVCyet 
+                if (comparedMVC > maxMVCYet)
+                {
+                    // Update maxMVC
+                    maxMVCYet = comparedMVC;
+                }
             }
         }
-
-
-
-
+        finalMVC = maxMVCYet; 
         return finalMVC;
     }
+
+    // public double GetMVCUsingQueue(LabJackObject.LabJackDataPoint[] dataset)
+    // {
+    //     double finalMVC = 0;
+    //     double _windowWidthInSec = 10;
+    //     int _windowWidthInDatapoints = (int)Math.Round(LJM.readingFreqHz * _windowWidthInSec);
+
+    //     var maxInWindow = new LabJackObject.LabJackDataPoint();
+    //     var minInWindow = new LabJackObject.LabJackDataPoint();
+    //     var comparedValue = new LabJackObject.LabJackDataPoint();
+
+    //     Queue<MVCCandidate> timeWindow = new Queue<MVCCandidate>();
+    //     // Initialize Window
+    //     for (int i = 0; i < _windowWidthInDatapoints; ++i)
+    //     {
+    //         // Update max or min in window
+    //         comparedValue = dataset[i];
+    //         if (comparedValue.CompareTo(maxInWindow) > 0)
+    //         {
+    //             timeWindow.Enqueue(new MVCCandidate(dataset[i], max: true, min: false));
+    //             maxInWindow = comparedValue;
+    //         }
+    //         else if (comparedValue.CompareTo(minInWindow) < 0)
+    //         {
+    //             timeWindow.Enqueue(new MVCCandidate(dataset[i], max: false, min: true));
+    //             minInWindow = comparedValue;
+    //         }
+    //         else
+    //         {
+    //             timeWindow.Enqueue(new MVCCandidate(dataset[i], max: false, min: false));
+    //         }
+    //     }
+
+    //     double  maxMVCYet = 0;
+    //     double comparedMVC;
+    //     double variationMinMax = 0;
+    //     double maxVariationTolerance = 2;
+    //     bool usingAverage = true;
+    //     bool usingMaxValue = true;
+
+
+
+    //     // Loop over the rest of the dataset
+    //     for (int i = _windowWidthInDatapoints; i < dataset.Length; ++i)
+    //     {
+    //         // Check if the window is stable
+    //         if (maxInWindow.AIN0 - minInWindow.AIN0 < maxVariationTolerance)
+    //         {
+    //             // Check if MVC needs to be updated (2 methods)
+    //             if (usingAverage)
+    //             {
+    //                 // Check if the average of the window is higher than previous MVC registered
+    //                 comparedMVC = timeWindow.
+    //                             OfType<LabJackObject.LabJackDataPoint>().
+    //                                 Average(datapoint => datapoint.AIN0);
+    //                 if (comparedMVC > maxMVCYet)
+    //                 {
+    //                     maxMVCYet = comparedMVC;
+    //                 }
+    //             }
+    //             else if (usingMaxValue)
+    //             {
+    //                 // Check if the max value in the window is higher than previous MVC registered
+    //                 comparedMVC = maxInWindow.AIN0;
+    //                 if (comparedMVC > maxMVCYet)
+    //                 {
+    //                     maxMVCYet = comparedMVC;
+    //                 }
+    //             }
+    //         }
+    //         // Enqueue
+    //         // Update max or min in window
+    //         comparedValue = dataset[i];
+    //         if (comparedValue.CompareTo(maxInWindow) > 0)
+    //         {
+    //             timeWindow.Enqueue(new MVCCandidate(dataset[i], max: true, min: false));
+    //             maxInWindow = comparedValue;
+    //         }
+    //         else if (comparedValue.CompareTo(minInWindow) < 0)
+    //         {
+    //             timeWindow.Enqueue(new MVCCandidate(dataset[i], max: false, min: true));
+    //             minInWindow = comparedValue;
+    //         }
+    //         else
+    //         {
+    //             timeWindow.Enqueue(new MVCCandidate(dataset[i], max: false, min: false));
+    //         }
+
+    //         // Dequeue
+    //         var leavingCandidate = (MVCCandidate)timeWindow.Dequeue();
+    //         // Examine the leaving value and act in accordance
+
+    //         if (leavingCandidate.isMax)
+    //         {
+    //             // Find the new maxInWindow
+    //             //var thing = timeWindow.Max(candidate => candidate.datapoint).isMax = true;
+    //             // Simple Loop
+    //             var temporaryMaxDatapoint = new LabJackObject.LabJackDataPoint();
+
+    //             foreach (var candidate in timeWindow)
+    //             {
+    //                 if (candidate.datapoint.CompareTo(temporaryMaxDatapoint) > 0)
+    //                 {
+    //                     temporaryMaxDatapoint = candidate.datapoint;
+
+    //                 }
+    //             }
+
+    //         }
+    //         else if (leavingCandidate.isMin)
+    //         {
+    //             // Find the new min
+
+    //         }
+    //     }
+
+
+
+
+    //     return finalMVC;
+    // }
 
 
 
