@@ -144,6 +144,8 @@ public class MVCManager : MonoBehaviour
             clipWindowMaxCache = (int)Math.Round(windowSizeMilisec / 1000 * readingFreq, 0);
         }
 
+        LJM.maxTimeReadLoopSec = 4;
+
         InitializeMVCUI();
 
         LJM.OnLabJackReadingStart.AddListener(OnReadingStart);
@@ -851,7 +853,7 @@ public class MVCManager : MonoBehaviour
     public double GetMVCUsingIndexing(LabJackObject.LabJackDataPoint[] dataset)
     {
         double finalMVC = 0;
-        double _windowWidthInSec = 10;
+        double _windowWidthInSec = 1;
         int _windowWidthInDatapoints = (int)Math.Round(LJM.readingFreqHz * _windowWidthInSec);
 
         (int start, int stop) window;
@@ -877,7 +879,7 @@ public class MVCManager : MonoBehaviour
             }
         }
 
-        double stabilityTolerance = 2;
+        double stabilityTolerance = 1;
         // Does not need indexing here
         double comparedMVC;
         double maxMVCYet = 0;
@@ -886,8 +888,6 @@ public class MVCManager : MonoBehaviour
         // Loop over the rest of the dataset 
         for (int i = _windowWidthInDatapoints; i < dataset.Length; ++i)
         {
-
-
             // Update the Window
             window.start = i - _windowWidthInDatapoints;
             window.stop = i;
@@ -897,7 +897,8 @@ public class MVCManager : MonoBehaviour
             if (maxInWindow.index < window.start)
             {
                 // Get the new max
-                for (int j = window.start; j < window.stop; i++)
+                maxInWindow.datapoint = new LabJackObject.LabJackDataPoint();
+                for (int j = window.start; j < window.stop; j++)
                 {
                     if (dataset[j].CompareTo(maxInWindow.datapoint) > 0)
                     {
@@ -909,7 +910,8 @@ public class MVCManager : MonoBehaviour
             else if (minInWindow.index < window.start)
             {
                 // Get the new min
-                for (int j = window.start; j < window.stop; i++)
+                minInWindow.datapoint = maxInWindow.datapoint;
+                for (int j = window.start; j < window.stop; j++)
                 {
                     if (dataset[j].CompareTo(minInWindow.datapoint) < 0)
                     {
@@ -925,7 +927,7 @@ public class MVCManager : MonoBehaviour
                 // Update maxInWindow
                 maxInWindow = (dataset[window.stop], window.stop);
             }
-            // Check if there is a new minif
+            // Check if there is a new min
             else if (dataset[window.stop].CompareTo(minInWindow.datapoint) < 0)
             {
                 // Update minInWindow
@@ -934,7 +936,7 @@ public class MVCManager : MonoBehaviour
 
 
             // Check if the window is eligible for MVC
-            if (maxInWindow.datapoint.AIN0 - minInWindow.datapoint.AIN0 < stabilityTolerance)
+            if ((maxInWindow.datapoint.AIN0 - minInWindow.datapoint.AIN0) < stabilityTolerance)
             {
                 // Clculate the current MVC
                 comparedMVC = maxInWindow.datapoint.AIN0;
@@ -945,6 +947,7 @@ public class MVCManager : MonoBehaviour
                     maxMVCYet = comparedMVC;
                 }
             }
+            //Debug.Log($"iteration:{i}, maxInWindow ={maxInWindow}, minInWindow={minInWindow}, maxMVCYet={maxMVCYet}");
         }
         finalMVC = maxMVCYet;
         return finalMVC;
@@ -956,10 +959,22 @@ public class MVCManager : MonoBehaviour
     {
 
         //HeyMark = new MarkLine { show = true, serieIndex = serie.index };
-        chart.RemoveChartComponents<MarkLine>();
 
         MarkLine HeyMark = chart.AddChartComponent<MarkLine>();
-        markLineList.Add(chart.AddChartComponent<MarkLine>());
+
+        // Testing
+        SaveCurrentMVC();
+
+        // Real
+        double MVCValue = GetMVCUsingIndexing(MVCMeasurements[MVCCount]);
+        MarkLine markLine = new MarkLine { show = true, serieIndex = serie.index }; 
+
+
+        while (markLineList.Count <= serie.index)
+        {
+            markLineList.Add(new MarkLine());
+        }
+        markLineList[serie.index] = (chart.AddChartComponent<MarkLine>());
         markLineList[serie.index].serieIndex = serie.index;
         markLineList[serie.index].show = true;
 
@@ -971,7 +986,7 @@ public class MVCManager : MonoBehaviour
                 xPosition= 0,
                 xValue = 0,
                 yPosition = 0,
-                yValue = 5,         // the Y height
+                yValue = MVCValue,         // the Y height
                 label = new LabelStyle
                 {
                     show = true,

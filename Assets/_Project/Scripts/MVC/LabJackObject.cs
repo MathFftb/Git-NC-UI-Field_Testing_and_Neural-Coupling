@@ -51,6 +51,12 @@ public class LabJackObject // Note: All configuration for a model T7, not T4
         public double AIN0;
         public DateTime time;
 
+        public LabJackDataPoint(double _ANI0, DateTime _time)
+        {
+            AIN0 = _ANI0;
+            time = _time;
+        }
+
         public void SetToZero()
         {
             AIN0 = 0;
