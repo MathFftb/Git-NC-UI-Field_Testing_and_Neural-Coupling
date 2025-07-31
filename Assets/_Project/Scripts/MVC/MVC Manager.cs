@@ -957,24 +957,19 @@ public class MVCManager : MonoBehaviour
 
     public void DrawMVCLine()
     {
-
-        //HeyMark = new MarkLine { show = true, serieIndex = serie.index };
-
-        MarkLine HeyMark = chart.AddChartComponent<MarkLine>();
-
         // Testing
         SaveCurrentMVC();
 
         // Real
         double MVCValue = GetMVCUsingIndexing(MVCMeasurements[MVCCount]);
-        MarkLine markLine = new MarkLine { show = true, serieIndex = serie.index }; 
-
 
         while (markLineList.Count <= serie.index)
         {
             markLineList.Add(new MarkLine());
+            Debug.Log("Had to add a Markline to List");
         }
-        markLineList[serie.index] = (chart.AddChartComponent<MarkLine>());
+        markLineList[serie.index] = chart.AddChartComponent<MarkLine>();
+        Debug.Log($"Added Markline to chart, markline count is now {chart.GetChartComponents<MarkLine>().Count}");
         markLineList[serie.index].serieIndex = serie.index;
         markLineList[serie.index].show = true;
 
@@ -1000,167 +995,7 @@ public class MVCManager : MonoBehaviour
                 }
             }
         };
-
-
-        // // Testing
-        // SaveCurrentMVC();
-
-        // // Real
-        // double MVCValue = GetMVCUsingIndexing(MVCMeasurements[MVCCount]);
-        // MarkLine markLine = new MarkLine { show = true, serieIndex = serie.index }; 
-
-        // // Configure a single horizontal line at y = MVC
-        // markLine.data = new List<MarkLineData>
-        // {
-        //     new MarkLineData
-        //     {
-        //         xPosition= 0,
-        //         xValue = 0,
-        //         yPosition = 0,
-        //         yValue = (float)MVCValue,         // the Y height
-        //         label = new LabelStyle
-        //         {
-        //             show = true,
-        //             formatter = $"MVC{serie.index + 1}"
-        //         },
-        //         lineStyle = new LineStyle
-        //         {
-        //             color = serie.lineStyle.color,
-        //             width = 0,
-        //             type = LineStyle.Type.Dashed
-        //         }
-        //     }
-        // };
-
-        // // chart.GetComponent<MarkLine>();
-        // // chart.EnsureChartComponent<MarkLine>();
-
-        // if (AppSettings.DebugMode) Debug.Log("Markline drawn");
     }
-
-    // public double GetMVCUsingQueue(LabJackObject.LabJackDataPoint[] dataset)
-    // {
-    //     double finalMVC = 0;
-    //     double _windowWidthInSec = 10;
-    //     int _windowWidthInDatapoints = (int)Math.Round(LJM.readingFreqHz * _windowWidthInSec);
-
-    //     var maxInWindow = new LabJackObject.LabJackDataPoint();
-    //     var minInWindow = new LabJackObject.LabJackDataPoint();
-    //     var comparedValue = new LabJackObject.LabJackDataPoint();
-
-    //     Queue<MVCCandidate> timeWindow = new Queue<MVCCandidate>();
-    //     // Initialize Window
-    //     for (int i = 0; i < _windowWidthInDatapoints; ++i)
-    //     {
-    //         // Update max or min in window
-    //         comparedValue = dataset[i];
-    //         if (comparedValue.CompareTo(maxInWindow) > 0)
-    //         {
-    //             timeWindow.Enqueue(new MVCCandidate(dataset[i], max: true, min: false));
-    //             maxInWindow = comparedValue;
-    //         }
-    //         else if (comparedValue.CompareTo(minInWindow) < 0)
-    //         {
-    //             timeWindow.Enqueue(new MVCCandidate(dataset[i], max: false, min: true));
-    //             minInWindow = comparedValue;
-    //         }
-    //         else
-    //         {
-    //             timeWindow.Enqueue(new MVCCandidate(dataset[i], max: false, min: false));
-    //         }
-    //     }
-
-    //     double  maxMVCYet = 0;
-    //     double comparedMVC;
-    //     double variationMinMax = 0;
-    //     double maxVariationTolerance = 2;
-    //     bool usingAverage = true;
-    //     bool usingMaxValue = true;
-
-
-
-    //     // Loop over the rest of the dataset
-    //     for (int i = _windowWidthInDatapoints; i < dataset.Length; ++i)
-    //     {
-    //         // Check if the window is stable
-    //         if (maxInWindow.AIN0 - minInWindow.AIN0 < maxVariationTolerance)
-    //         {
-    //             // Check if MVC needs to be updated (2 methods)
-    //             if (usingAverage)
-    //             {
-    //                 // Check if the average of the window is higher than previous MVC registered
-    //                 comparedMVC = timeWindow.
-    //                             OfType<LabJackObject.LabJackDataPoint>().
-    //                                 Average(datapoint => datapoint.AIN0);
-    //                 if (comparedMVC > maxMVCYet)
-    //                 {
-    //                     maxMVCYet = comparedMVC;
-    //                 }
-    //             }
-    //             else if (usingMaxValue)
-    //             {
-    //                 // Check if the max value in the window is higher than previous MVC registered
-    //                 comparedMVC = maxInWindow.AIN0;
-    //                 if (comparedMVC > maxMVCYet)
-    //                 {
-    //                     maxMVCYet = comparedMVC;
-    //                 }
-    //             }
-    //         }
-    //         // Enqueue
-    //         // Update max or min in window
-    //         comparedValue = dataset[i];
-    //         if (comparedValue.CompareTo(maxInWindow) > 0)
-    //         {
-    //             timeWindow.Enqueue(new MVCCandidate(dataset[i], max: true, min: false));
-    //             maxInWindow = comparedValue;
-    //         }
-    //         else if (comparedValue.CompareTo(minInWindow) < 0)
-    //         {
-    //             timeWindow.Enqueue(new MVCCandidate(dataset[i], max: false, min: true));
-    //             minInWindow = comparedValue;
-    //         }
-    //         else
-    //         {
-    //             timeWindow.Enqueue(new MVCCandidate(dataset[i], max: false, min: false));
-    //         }
-
-    //         // Dequeue
-    //         var leavingCandidate = (MVCCandidate)timeWindow.Dequeue();
-    //         // Examine the leaving value and act in accordance
-
-    //         if (leavingCandidate.isMax)
-    //         {
-    //             // Find the new maxInWindow
-    //             //var thing = timeWindow.Max(candidate => candidate.datapoint).isMax = true;
-    //             // Simple Loop
-    //             var temporaryMaxDatapoint = new LabJackObject.LabJackDataPoint();
-
-    //             foreach (var candidate in timeWindow)
-    //             {
-    //                 if (candidate.datapoint.CompareTo(temporaryMaxDatapoint) > 0)
-    //                 {
-    //                     temporaryMaxDatapoint = candidate.datapoint;
-
-    //                 }
-    //             }
-
-    //         }
-    //         else if (leavingCandidate.isMin)
-    //         {
-    //             // Find the new min
-
-    //         }
-    //     }
-
-
-
-
-    //     return finalMVC;
-    // }
-
-
-
     #endregion
 
 }
