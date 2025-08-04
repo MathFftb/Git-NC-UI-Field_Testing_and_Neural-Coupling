@@ -483,7 +483,13 @@ MonoBehaviour:
     m_RotationOrder: 4
   animationDuration: 0.5
   _isOpen: 0
-  _initialPosition: {x: 960.00006, y: 540}
+  _initialPosition: {x: 640.00006, y: 245.5}
+  OnOpenThisWindow:
+    m_PersistentCalls:
+      m_Calls: []
+  OnCloseThisWindow:
+    m_PersistentCalls:
+      m_Calls: []
 --- !u!1 &89621592
 GameObject:
   m_ObjectHideFlags: 0
@@ -2971,7 +2977,13 @@ MonoBehaviour:
     m_RotationOrder: 4
   animationDuration: 0.5
   _isOpen: 1
-  _initialPosition: {x: 960, y: 540}
+  _initialPosition: {x: 640, y: 245.5}
+  OnOpenThisWindow:
+    m_PersistentCalls:
+      m_Calls: []
+  OnCloseThisWindow:
+    m_PersistentCalls:
+      m_Calls: []
 --- !u!1 &754128724
 GameObject:
   m_ObjectHideFlags: 0
@@ -7290,7 +7302,13 @@ MonoBehaviour:
     m_RotationOrder: 4
   animationDuration: 0.5
   _isOpen: 0
-  _initialPosition: {x: 960.00006, y: 540}
+  _initialPosition: {x: 640.00006, y: 245.5}
+  OnOpenThisWindow:
+    m_PersistentCalls:
+      m_Calls: []
+  OnCloseThisWindow:
+    m_PersistentCalls:
+      m_Calls: []
 --- !u!224 &1573622117
 RectTransform:
   m_ObjectHideFlags: 0
@@ -8224,6 +8242,7 @@ GameObject:
   - component: {fileID: 1870855207}
   - component: {fileID: 1870855206}
   - component: {fileID: 1870855205}
+  - component: {fileID: 1870855208}
   m_Layer: 5
   m_Name: Button
   m_TagString: Untagged
@@ -8294,7 +8313,19 @@ MonoBehaviour:
   m_TargetGraphic: {fileID: 1870855206}
   m_OnClick:
     m_PersistentCalls:
-      m_Calls: []
+      m_Calls:
+      - m_Target: {fileID: 1870855208}
+        m_TargetAssemblyTypeName: SceneNavigation, Assembly-CSharp
+        m_MethodName: LoadScene
+        m_Mode: 3
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 4
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
 --- !u!114 &1870855206
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -8333,6 +8364,18 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1870855203}
   m_CullTransparentMesh: 1
+--- !u!114 &1870855208
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1870855203}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: bfd853159d3ad1047b24571f4d1b1c3a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
 --- !u!1 &1899240229
 GameObject:
   m_ObjectHideFlags: 0
@@ -15674,7 +15717,13 @@ MonoBehaviour:
     m_RotationOrder: 4
   animationDuration: 0.5
   _isOpen: 0
-  _initialPosition: {x: 960, y: 540}
+  _initialPosition: {x: 640, y: 245.5}
+  OnOpenThisWindow:
+    m_PersistentCalls:
+      m_Calls: []
+  OnCloseThisWindow:
+    m_PersistentCalls:
+      m_Calls: []
 --- !u!224 &9195969954638567009
 RectTransform:
   m_ObjectHideFlags: 0

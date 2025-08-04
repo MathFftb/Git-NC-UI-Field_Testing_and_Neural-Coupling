@@ -4662,7 +4662,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   chart: {fileID: 1061770875}
-  serieMaxCache: 5000
+  serieMaxCache: 1000
   serieLineWidth: 0.5
   serieStyleIsArea: 0
   userInt: 0
