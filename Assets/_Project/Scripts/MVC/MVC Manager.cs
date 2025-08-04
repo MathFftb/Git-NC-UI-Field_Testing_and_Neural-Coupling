@@ -16,6 +16,7 @@ using System.Collections;
 using System.Data;
 using System.Linq;
 using UnityEditor.Search;
+using JetBrains.Annotations;
 
 public class MVCManager : MonoBehaviour
 {
@@ -102,6 +103,12 @@ public class MVCManager : MonoBehaviour
 
     public TMP_InputField MVCValueInputField;
     public Button SaveAllMVCMeasurementsToFile;
+
+    #endregion
+
+    #region "MVC Values"
+    List<double> MVCValues; 
+    
 
     #endregion
 
@@ -938,8 +945,19 @@ public class MVCManager : MonoBehaviour
             // Check if the window is eligible for MVC
             if ((maxInWindow.datapoint.AIN0 - minInWindow.datapoint.AIN0) < stabilityTolerance)
             {
-                // Clculate the current MVC
-                comparedMVC = maxInWindow.datapoint.AIN0;
+                // Calculate the current MVC
+                // MVC = Mean
+                double _sum = 0;
+                double _mean = 0;
+                for (int j = window.start; j < window.stop; ++j)
+                {
+                    _sum += dataset[j].AIN0; 
+                }
+                _mean = _sum / (window.stop - window.start);
+                comparedMVC = _mean; 
+                    
+                // MVC = Max
+                //comparedMVC = maxInWindow.datapoint.AIN0;
                 // Chek if the new MVC is higher than maxMVCyet 
                 if (comparedMVC > maxMVCYet)
                 {
