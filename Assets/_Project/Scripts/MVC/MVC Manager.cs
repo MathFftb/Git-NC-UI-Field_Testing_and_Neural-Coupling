@@ -17,6 +17,7 @@ using System.Data;
 using System.Linq;
 using UnityEditor.Search;
 using JetBrains.Annotations;
+using UnityEngine.AI;
 
 public class MVCManager : MonoBehaviour
 {
@@ -48,6 +49,7 @@ public class MVCManager : MonoBehaviour
     public LabJackObject.LabJackDataPoint[] MVC1;
     public LabJackObject.LabJackDataPoint[] MVC2;
     public LabJackObject.LabJackDataPoint[] MVC3;
+    double [] MVCValues; // Stores the calculated and unique MVC Values of each of the measurements
     public double MVCValueFinal;
 
     #endregion
@@ -76,6 +78,7 @@ public class MVCManager : MonoBehaviour
     #region "MVC User Flow Variables"
     public int MVCCount = 0; // First measurement is number 0, there are 3 measurements
     public int maxNumberMVCMeasurements = 3;
+    
     #endregion
 
     #region "User Input Variables"
@@ -103,12 +106,6 @@ public class MVCManager : MonoBehaviour
 
     public TMP_InputField MVCValueInputField;
     public Button SaveAllMVCMeasurementsToFile;
-
-    #endregion
-
-    #region "MVC Values"
-    List<double> MVCValues; 
-    
 
     #endregion
 
@@ -214,7 +211,7 @@ public class MVCManager : MonoBehaviour
         int expectedMaxSize = (int)Math.Round(LJM.readingFreqHz * LJM.maxTimeReadLoopSec);//Size of the MVCMeasurements arrays
         int iterationMax = Math.Min(latestCheckedIteration, expectedMaxSize);
 
-        MVCMeasurements = new LabJackObject.LabJackDataPoint[3][];
+        MVCMeasurements = new LabJackObject.LabJackDataPoint[maxNumberMVCMeasurements][];
         MVCMeasurements[0] = new LabJackObject.LabJackDataPoint[expectedMaxSize];
 
         for (int i = 0; i < iterationMax; ++i)
@@ -544,6 +541,7 @@ public class MVCManager : MonoBehaviour
     public void InitializeMVCMeasurements() // Initializes the arrays to be saved at the end
     {
         MVCMeasurements = new LabJackObject.LabJackDataPoint[maxNumberMVCMeasurements][];
+        MVCValues = new double[maxNumberMVCMeasurements];
     }
 
 
@@ -840,7 +838,14 @@ public class MVCManager : MonoBehaviour
         MeasurementCountDisplay.text = $"Measurement #{MVCCount + 1}";
     }
 
+    public void ToggleSerieVisualisation(int serieIndex)
+    {
+        chart.GetSerie(serieIndex).show = !chart.GetSerie(serieIndex).show;
+    }
+
     #endregion
+
+    
 
     #region "Calculating MVC"
 
@@ -975,11 +980,15 @@ public class MVCManager : MonoBehaviour
 
     public void DrawMVCLine()
     {
-        // Testing
-        SaveCurrentMVC();
+        // We need to make sure the MVC Measurements is in its array
+        if(MVCMeasurements[MVCCount].Length<2)
+        {
+            SaveCurrentMVC();
+        }
 
-        // Real
+        // Get and register the MVC unique value
         double MVCValue = GetMVCUsingIndexing(MVCMeasurements[MVCCount]);
+        MVCValues[MVCCount] = MVCValue;
 
         while (markLineList.Count <= serie.index)
         {
