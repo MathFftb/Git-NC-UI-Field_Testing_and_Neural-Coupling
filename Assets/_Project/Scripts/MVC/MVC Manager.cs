@@ -25,6 +25,7 @@ public class MVCManager : MonoBehaviour
     [Header("XChart Variables")]
     public LineChart chart;
     public Serie serie;
+    public Serie aSerie;
     public int windowSizeMilisec = 5000; // Visible Data window in milliseconds
 
     public double serieMaxValue = 0; // Max Value contained in the serie data
@@ -45,11 +46,10 @@ public class MVCManager : MonoBehaviour
     #endregion
 
     #region "Data Storage Variables"
+    [Header("Data Storage Variables")]
     public LabJackObject.LabJackDataPoint[][] MVCMeasurements; // Stores all the datapoints to be saved at the end of the protocol
-    public LabJackObject.LabJackDataPoint[] MVC1;
-    public LabJackObject.LabJackDataPoint[] MVC2;
-    public LabJackObject.LabJackDataPoint[] MVC3;
-    double [] MVCValues; // Stores the calculated and unique MVC Values of each of the measurements
+
+    [SerializeField] private double[] MVCValues; // Stores the calculated and unique MVC Values of each of the measurements
     public double MVCValueFinal;
 
     #endregion
@@ -78,7 +78,7 @@ public class MVCManager : MonoBehaviour
     #region "MVC User Flow Variables"
     public int MVCCount = 0; // First measurement is number 0, there are 3 measurements
     public int maxNumberMVCMeasurements = 3;
-    
+
     #endregion
 
     #region "User Input Variables"
@@ -604,10 +604,21 @@ public class MVCManager : MonoBehaviour
         // Note: Csv method creates the files if they are not created
         for (int i = 0; i < MVCMeasurements.Length; ++i)
         {
+            // Make sure there is data to save
+            if (MVCMeasurements[i] == null)
+            {
+                Debug.Log($"MVC Measurement #{i+1} was skipped for lack of data.");
+                continue;
+            }
+
             // Set the path to the savefile
             Overseer.Instance.currentMVCMeasurementFileName = $"MVCMeasurement{i + 1}.csv";
             Overseer.Instance.UpdateAllPaths();
             string filePath = Overseer.Instance.currentMVCMeasurementFilePath;
+
+            // Make sure the folder for MVC Measurements exists
+            Overseer.Instance.MakeSureFolderExists(Overseer.Instance.MVCMeasurementsFolderPath);
+
             // Save the data in the file
             CsvConverter.SaveAsCsv(MVCMeasurements[i], dp => dp.ToCsv(), filePath, LabJackObject.LabJackDataPoint.CsvHeader());
         }
@@ -665,8 +676,6 @@ public class MVCManager : MonoBehaviour
 
         // Initialize measurement count display
         UpdateMeasurementCountDisplay();
-
-
     }
 
     public void ActivateReadingModeUI()
@@ -703,7 +712,7 @@ public class MVCManager : MonoBehaviour
         MeasurementCountDisplay.enabled = true;
         MaxDurationInputField.interactable = true;
         StartMeasurementButton.interactable = true;
-        SkipMeasurementButton.interactable = false;
+        SkipMeasurementButton.interactable = true;
 
         MVCInstructions.gameObject.SetActive(false);
         displayInstructions = false; // Instructions should not have to be displayed every time
@@ -767,6 +776,9 @@ public class MVCManager : MonoBehaviour
 
     }
 
+    #endregion
+    #region "OnLastMeasurementEnd"
+
     public void OnLastMeasurementEnd()
     {
         // Update UI Elements interactibility
@@ -796,40 +808,50 @@ public class MVCManager : MonoBehaviour
         double maxDuration = 0;
         for (int i = 0; i < MVCCount; ++i)
         {
-            if (chart.series.Count > MVCCount && MVCMeasurements[i].Length > 0)
+            if (chart.series.Count < MVCCount || MVCMeasurements[i] == null)
             {
-                serie = chart.GetSerie(i);
-                serie.ClearData(); // Clear data just in case, we assume any modification could have happened to the original serie
-                serie.maxCache = MVCMeasurements[i].Length;
-
-                // Style option of the serie 
-                serie.lineStyle.width = serieLineWidth;  // Default is usually 2 or 3; set to 1 for thin
-                serie.symbol.show = false;
-                serie.show = true;
-
-                // Get MVC Measurement start 
-                DateTime readStartTime = MVCMeasurements[i][0].time;
-                // Get MVC Duration in seconds
-                double durationSec = (float)(MVCMeasurements[i][^1].time - MVCMeasurements[i][0].time).TotalMilliseconds / 1000;
-
-                foreach (var datapoint in MVCMeasurements[i])
-                {
-                    AddTorqueDataPoint(datapoint, readStartTime, slidingXWindow: false, slidingYWindow: true);
-                }
-
-                // Adjust the X axis to show all data
-                if (durationSec > maxDuration)
-                {
-                    if (AppSettings.DebugMode) Debug.Log($"New Max Duration set: {maxDuration}");
-                    maxDuration = durationSec;
-                    var xAxis = chart.GetChartComponent<XAxis>();
-                    // Axis type has to be custon to directly modify the min and max values
-                    xAxis.minMaxType = Axis.AxisMinMaxType.Custom;
-                    xAxis.max = Math.Round(maxDuration, 2);
-                    xAxis.min = Math.Round(-0.5, 2);
-                }
-
+                continue;
             }
+            serie = chart.GetSerie(i);
+            serie.ClearData(); // Clear data just in case, we assume any modification could have happened to the original serie
+            serie.maxCache = MVCMeasurements[i].Length;
+
+            // Style option of the serie 
+            serie.lineStyle.width = serieLineWidth;  // Default is usually 2 or 3; set to 1 for thin
+            serie.symbol.show = false;
+            serie.show = true;
+
+            // Get MVC Measurement start 
+            DateTime readStartTime = MVCMeasurements[i][0].time;
+            // Get MVC Duration in seconds
+            double durationSec = (float)(MVCMeasurements[i][^1].time - MVCMeasurements[i][0].time).TotalMilliseconds / 1000;
+
+            foreach (var datapoint in MVCMeasurements[i])
+            {
+                AddTorqueDataPoint(datapoint, readStartTime, slidingXWindow: false, slidingYWindow: true);
+            }
+
+            // Adjust the X axis to show all data
+            if (durationSec > maxDuration)
+            {
+                if (AppSettings.DebugMode) Debug.Log($"New Max Duration set: {maxDuration}");
+                maxDuration = durationSec;
+                var xAxis = chart.GetChartComponent<XAxis>();
+                // Axis type has to be custon to directly modify the min and max values
+                xAxis.minMaxType = Axis.AxisMinMaxType.Custom;
+                xAxis.max = Math.Round(maxDuration, 2);
+                xAxis.min = Math.Round(-0.5, 2);
+            }
+        }
+
+        // Calculate and Display all the MVC Values
+        for (int i = 0; i < MVCMeasurements.Length; ++i)
+        {
+            if (chart.series.Count < MVCCount || MVCMeasurements[i] == null)
+            {
+                continue;
+            }
+            DrawMVCLine(i);
         }
     }
 
@@ -845,7 +867,7 @@ public class MVCManager : MonoBehaviour
 
     #endregion
 
-    
+
 
     #region "Calculating MVC"
 
@@ -956,11 +978,11 @@ public class MVCManager : MonoBehaviour
                 double _mean = 0;
                 for (int j = window.start; j < window.stop; ++j)
                 {
-                    _sum += dataset[j].AIN0; 
+                    _sum += dataset[j].AIN0;
                 }
                 _mean = _sum / (window.stop - window.start);
-                comparedMVC = _mean; 
-                    
+                comparedMVC = _mean;
+
                 // MVC = Max
                 //comparedMVC = maxInWindow.datapoint.AIN0;
                 // Chek if the new MVC is higher than maxMVCyet 
@@ -978,10 +1000,73 @@ public class MVCManager : MonoBehaviour
 
     public List<MarkLine> markLineList = new List<MarkLine>();
 
+    #endregion
+    #region "Showing MVC"
+
+    public void DrawMVCLine(int measurementIndex)
+    {
+        // We need to make sure the MVC Measurements exists
+        if (measurementIndex >= MVCMeasurements.Length)
+        {
+            return;
+        }
+        if (MVCMeasurements[measurementIndex] == null)
+        {
+            SaveCurrentMVC();
+        }
+
+        // Get the MVC unique value
+        double MVCValue = GetMVCUsingIndexing(MVCMeasurements[measurementIndex]);
+
+        // Register the MVC Value
+        MVCValues[measurementIndex] = MVCValue;
+
+        // Get a serie to associate to the MVC Markline
+        Serie aSerie = chart.GetSerie(measurementIndex);
+
+        // Ensure there are enough registered Marklines to work with
+        while (markLineList.Count <= aSerie.index)
+        {
+            markLineList.Add(new MarkLine());
+            Debug.Log("Had to add a Markline to List");
+        }
+        // Associate a Markline to the serie by index
+        markLineList[aSerie.index] = chart.AddChartComponent<MarkLine>();
+        Debug.Log($"Added Markline to chart, markline count is now {chart.GetChartComponents<MarkLine>().Count}");
+        markLineList[aSerie.index].serieIndex = aSerie.index;
+        // Make sure the Markline is shown
+        markLineList[aSerie.index].show = true;
+
+        // Configure a single horizontal line at y = MVC
+        markLineList[aSerie.index].data = new List<MarkLineData>
+        {
+            new MarkLineData
+            {
+                xPosition= 0,
+                xValue = 0,
+                yPosition = 0,
+                yValue = MVCValue,         // the Y height
+                label = new LabelStyle
+                {
+                    show = true,
+                    formatter = $"MVC{aSerie.index + 1}"
+                },
+                lineStyle = new LineStyle
+                {
+                    color = aSerie.lineStyle.color,
+                    width = 0,
+                    type = LineStyle.Type.Dashed
+                }
+            }
+        };
+    }
+
+    // A version that takes the latest MVCCount and serie to draw the MVC
+    // For testing purposes mainly
     public void DrawMVCLine()
     {
-        // We need to make sure the MVC Measurements is in its array
-        if(MVCMeasurements[MVCCount].Length<2)
+        // We need to make sure the MVC Measurements exists
+        if (MVCMeasurements[MVCCount] == null)
         {
             SaveCurrentMVC();
         }
@@ -1024,5 +1109,4 @@ public class MVCManager : MonoBehaviour
         };
     }
     #endregion
-
 }

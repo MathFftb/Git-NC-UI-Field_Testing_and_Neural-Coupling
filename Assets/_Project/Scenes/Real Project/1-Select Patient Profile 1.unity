@@ -660,9 +660,9 @@ RectTransform:
   - {fileID: 1235360114}
   m_Father: {fileID: 1344098717}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
-  m_AnchorMin: {x: 0, y: 0}
-  m_AnchorMax: {x: 0, y: 0}
-  m_AnchoredPosition: {x: 0, y: 0}
+  m_AnchorMin: {x: 0, y: 1}
+  m_AnchorMax: {x: 0, y: 1}
+  m_AnchoredPosition: {x: 0, y: -30}
   m_SizeDelta: {x: 830, y: 30}
   m_Pivot: {x: 0, y: 1}
 --- !u!114 &153991259
@@ -3129,7 +3129,7 @@ MonoBehaviour:
     m_RotationOrder: 4
   animationDuration: 1.78
   _isOpen: 1
-  _initialPosition: {x: 653.17615, y: 334.43155}
+  _initialPosition: {x: 554.17285, y: 319.01996}
   OnOpenThisWindow:
     m_PersistentCalls:
       m_Calls: []
@@ -4786,7 +4786,7 @@ MonoBehaviour:
   m_TargetGraphic: {fileID: 1767885019}
   m_HandleRect: {fileID: 1767885018}
   m_Direction: 2
-  m_Value: 1
+  m_Value: 0
   m_Size: 1
   m_NumberOfSteps: 0
   m_OnValueChanged:
@@ -8189,9 +8189,45 @@ MonoBehaviour:
     category: 0
     affectedSide: 0
     handedness: 0
-  BestScore: 0
-  BestPlayer: 
-  Player: 
+  LJM:
+    isConnected: 0
+    isRunning: 0
+    dataArrayMaxSize: 100000
+    dataArray: []
+    latestDataPoint:
+      AIN0: 0
+    intervalReadingInMicroseconds: 1000000
+    maxTimeReadLoopSec: 10
+    timerIsRunning: 0
+    latestIteration: 0
+    timeReadingSec: 0
+    skippedIntervals: 0
+    totalSkippedIntervals: 0
+    OnLabJackReadingStart:
+      m_PersistentCalls:
+        m_Calls: []
+    OnLabJackReadingEnd:
+      m_PersistentCalls:
+        m_Calls: []
+  projectPath: 
+  dataFolderPath: 
+  patientFolderPath: 
+  patientProfileInfoFilePath: 
+  sessionsFolderPath: 
+  currentSessionFolderPath: 
+  MVCMeasurementsFolderPath: 
+  currentMVCMeasurementFilePath: 
+  MVCValueFilePath: 
+  currentTrialFilePath: 
+  dataFolderName: Data
+  patientFolderName: Patient ID
+  patientProfileInfoFileName: PatientProfileInfo.json
+  sessionFolderName: Sessions
+  currentSessionName: Session X
+  MVCMeasurementsFolderName: MVC
+  currentMVCMeasurementFileName: MVC Measurement X
+  MVCValueFileName: MVC Value
+  currentTrialFileName: Trial X
 --- !u!4 &1381845290
 Transform:
   m_ObjectHideFlags: 0
@@ -10372,8 +10408,8 @@ MonoBehaviour:
   m_TargetGraphic: {fileID: 12984321}
   m_HandleRect: {fileID: 12984319}
   m_Direction: 0
-  m_Value: -0.00000014005352
-  m_Size: 0.73747057
+  m_Value: -0.0000002806344
+  m_Size: 0.7379639
   m_NumberOfSteps: 0
   m_OnValueChanged:
     m_PersistentCalls:
@@ -16053,7 +16089,7 @@ MonoBehaviour:
   m_TargetGraphic: {fileID: 5247994088120582652}
   m_HandleRect: {fileID: 9037166884073458571}
   m_Direction: 2
-  m_Value: 1
+  m_Value: 0
   m_Size: 1
   m_NumberOfSteps: 0
   m_OnValueChanged:
@@ -19319,8 +19355,8 @@ RectTransform:
   m_Children: []
   m_Father: {fileID: 7383662307859597159}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
-  m_AnchorMin: {x: 0.00000007353632, y: 0}
-  m_AnchorMax: {x: 0.7374704, y: 1}
+  m_AnchorMin: {x: 0, y: 0}
+  m_AnchorMax: {x: 0.73796386, y: 1}
   m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 20, y: 20}
   m_Pivot: {x: 0.5, y: 0.5}
@@ -21303,8 +21339,8 @@ MonoBehaviour:
   m_TargetGraphic: {fileID: 2590286572126179080}
   m_HandleRect: {fileID: 4482747657403877263}
   m_Direction: 0
-  m_Value: 0.00000028010678
-  m_Size: 0.7374704
+  m_Value: -0.00000014031716
+  m_Size: 0.73796386
   m_NumberOfSteps: 0
   m_OnValueChanged:
     m_PersistentCalls:
@@ -23516,7 +23552,7 @@ MonoBehaviour:
     m_RotationOrder: 4
   animationDuration: 0.5
   _isOpen: 0
-  _initialPosition: {x: 651, y: 325.5}
+  _initialPosition: {x: 552, y: 310.5}
   OnOpenThisWindow:
     m_PersistentCalls:
       m_Calls: []
@@ -25926,7 +25962,7 @@ MonoBehaviour:
     m_RotationOrder: 4
   animationDuration: 0.5
   _isOpen: 0
-  _initialPosition: {x: 651, y: 318.082}
+  _initialPosition: {x: 552, y: 303.082}
   OnOpenThisWindow:
     m_PersistentCalls:
       m_Calls:

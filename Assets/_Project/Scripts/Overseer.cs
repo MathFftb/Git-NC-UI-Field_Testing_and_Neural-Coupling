@@ -5,6 +5,7 @@ using System.IO;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 using System.Runtime.Remoting.Messaging;
+using System.Threading.Tasks;
 
 public class Overseer : MonoBehaviour
 {
@@ -42,7 +43,7 @@ public class Overseer : MonoBehaviour
     public LabJackObject LJM;
 
     [SerializeField]
-    public double MVCValue { get; set; }
+    public double MVCValue;
 
 
     public static Overseer Instance;
@@ -170,6 +171,30 @@ public class Overseer : MonoBehaviour
         Debug.Log("Paths Updated");
     }
 
+    /// <summary>
+    /// Makes sure there is a folder at the precised path, or creates every folder in the path
+    /// </summary>
+    /// <param name="folderPath"></param>
+    public void MakeSureFolderExists(string folderPath)
+    {
+        bool existedAlready = Directory.Exists(folderPath);
+        if (!existedAlready) Debug.Log($"No folder found at {folderPath}");
+        else Debug.Log($"Folder already existed at {folderPath}");
+
+        Directory.CreateDirectory(folderPath);
+
+        if (!existedAlready)
+        {
+            if (Directory.Exists(folderPath)) Debug.Log($"Folder Now Exists at {folderPath}.");
+            else Debug.LogWarning($"Error: Folder not found after creation at {folderPath}.");
+        }
+        else
+        {
+            if (Directory.Exists(folderPath)) Debug.Log($"Folder still Exists at {folderPath}.");
+            else Debug.LogWarning($"Error: Folder not found after creation at {folderPath}.");
+        }
+    }
+
     #endregion
 
     #region LabJack Management
@@ -177,13 +202,22 @@ public class Overseer : MonoBehaviour
     {
         LJM.ConnectLabJack();
     }
-    
+
     public void DisConnectLabJack()
     {
         LJM.DisconnectLabJack();
     }
     #endregion
 
+    #region Task Settings
+    TaskSettings currentTaskSettings;
+
+    public void SetTaskSettings(TaskSettings _Settings)
+    {
+        currentTaskSettings = _Settings; 
+    }
+
+    #endregion
 
 
 

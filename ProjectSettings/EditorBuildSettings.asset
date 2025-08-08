@@ -6,7 +6,7 @@ EditorBuildSettings:
   serializedVersion: 2
   m_Scenes:
   - enabled: 1
-    path: Assets/_Project/Scenes/Old Software/NeuralCoupling Export/NeuralCoupling.unity
+    path: Assets/_Project/Scenes/Testing/Old Software/NeuralCoupling Export/NeuralCoupling.unity
     guid: 6b1c5814ac8961740b7099fd6905dcdf
   - enabled: 1
     path: Assets/_Project/Scenes/Real Project/1-Select Patient Profile 1.unity
@@ -18,10 +18,7 @@ EditorBuildSettings:
     path: Assets/_Project/Scenes/Real Project/3-Game Screen.unity
     guid: c5698466ebe5948489712de47c277c54
   - enabled: 1
-    path: Assets/_Project/Scenes/MVC/MVC Testing.unity
-    guid: 838ad27fe6d2b8d408fcce5616173431
-  - enabled: 1
-    path: Assets/_Project/Scenes/LabJack and Xcharts/LabJackXchart Testing.unity
-    guid: 0464e07e4a7570f4f8b3ca1281eff673
+    path: Assets/_Project/Scenes/Real Project/2.1-MVC Measurement.unity
+    guid: f9f14bcd5f2a2b54a8dfa538af601cee
   m_configObjects: {}
   m_UseUCBPForAssetBundles: 0
