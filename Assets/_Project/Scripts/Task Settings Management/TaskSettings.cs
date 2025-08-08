@@ -115,7 +115,7 @@ public class TaskSettings
             this.cyclesDuration =       
             this.stimMaxNumber =        
             this.stimIntensity =        
-            this.preset =               
+            this.preset = TaskSettings.TaskPreset.Preset1;         
                 break;
                 */
         }
@@ -124,5 +124,5 @@ public class TaskSettings
     
     
     
-        #endregion
+    #endregion
 }
