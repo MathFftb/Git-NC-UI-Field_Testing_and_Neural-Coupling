@@ -6,6 +6,11 @@ using System.Text;
 using NUnit.Framework;
 using UnityEngine;
 
+/// <summary>
+/// This script contains structs and methods useful to convert project data into csv files and save them in a desired folder.
+/// For example: It is used in MVCManager to convert the MVC data array to csv and save it in the appropriate patient folder. 
+/// </summary>
+
 public class CsvConverter : MonoBehaviour
 {
     struct DataPoint
@@ -52,6 +57,14 @@ public class CsvConverter : MonoBehaviour
         ToCsv(ds2, dp => dp.ToCsv(), DataPoint.CsvHeader());
     }
 
+    /// <summary>
+    /// Converts an array of T objects to a string csv format
+    /// </summary>
+    /// <param name="dataset"></param>
+    /// <param name="toCsvLine"></param>
+    /// <param name="header"></param>
+    /// <typeparam name="T"></typeparam>
+    /// <returns></returns>
     public static string ToCsv<T>(T[] dataset, Func<T, string> toCsvLine, string header = null)
     {
         StringBuilder sb = new StringBuilder();

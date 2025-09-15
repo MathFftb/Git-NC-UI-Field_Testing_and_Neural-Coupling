@@ -6,6 +6,10 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
+/// <summary>
+/// This Script was used to test the creation of dropdowns in Unity.
+/// It is not used anymore in this project and could be deleted. 
+/// </summary>
 public class DropdownScript : MonoBehaviour
 {
     public TMP_Dropdown dropdown;
