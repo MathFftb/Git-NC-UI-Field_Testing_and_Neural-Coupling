@@ -5,7 +5,11 @@ using System.Text;
 using JetBrains.Annotations;
 using UnityEngine;
 
-
+/// <summary>
+/// A circular buffer with a fixed size.
+/// Can be filled, dequeued, peak oldest, copied inside an array, returned as an array, returned as a string. 
+/// </summary>
+/// <typeparam name="T"></typeparam>
 
 [Serializable]
 public class CircularBuffer<T>

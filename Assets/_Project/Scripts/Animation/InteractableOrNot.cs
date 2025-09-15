@@ -3,6 +3,9 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
+/// <summary>
+/// Attaching this script to a gameobject allows you to regulate their interactibility from any script or Button.
+/// </summary>
 [RequireComponent(typeof(Selectable))]
 public class InteractableOrNot : MonoBehaviour
 {

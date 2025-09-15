@@ -2,8 +2,17 @@ using System;
 using System.Collections;
 using UnityEngine;
 using UnityEngine.Events;
-
-// Attach this script to a canva parent to the image gameobject window to open and close
+/// <summary>
+/// This script is used to animate, show/hide, activate/deactivate Canvas GameObjects.
+/// How this works:
+/// -Have a Canvas GameObject.
+/// -Put the content of the Canvas in a child Image GameObject that has the CanvasGroup component (called "Window" in the project).
+/// -The Window is the element that gets opened and closed.
+/// -Add this script to the Canvas GameObject.
+/// -Any GameObject in the scene can now call the "OpenWindow" or "CloseWindow" functions on this Canvas now and trigger the planned animation of the Window.
+/// 
+/// The animation characteristics can be chosen by changing the script serialized attributes.
+/// </summary>
 public class AltOpenCloseWindow : MonoBehaviour
 {
     [Header("Window Setup")]

@@ -2,7 +2,13 @@ using System;
 using System.Collections;
 using UnityEngine;
 
-// Attach this script to a canva parent to the image gameobject window to open and close
+///<summary>
+/// Attach this script to a canva parent to the image gameobject window to open and close
+/// Note: This is an old script that should not be used in this project anymore.
+/// For the newest version, check "AltOpenCloseWindow.cs".
+/// <summary>
+
+
 public class OpenCloseWindow : MonoBehaviour
 {
     [Header("Window Setup")]
@@ -166,7 +172,7 @@ public class OpenCloseWindow : MonoBehaviour
         }
     }
 
-    
+
 
     // Initializes the values with the window when it is set in the inspector
     private void InitializeOffsetPositions()
