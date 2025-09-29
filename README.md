@@ -8,8 +8,8 @@ This GitHub contains every file used to develop the software to run the Neural C
 ## Language Used
 
 The experiment runs as a **Unity app**, using **scripts** written in **C#**. Notable libraries added to the basic **Unity** and **System** are:
-- **LabJack**, to communicate with the LabJack T7 device for data acquisition 
-- **XCharts**, for graph representation and visualisation of MVC
+- **LabJack (1.23.0.0 file version plugin)**, to communicate with the LabJack T7 device for data acquisition 
+- **XCharts 3.14.0**, for graph representation and visualisation of MVC
 - **WaveplusLab**/**WavePlus** to communicate with the data acquisition system for EMG and IMU 
 
 ## Structure 
